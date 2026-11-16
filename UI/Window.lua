@@ -254,6 +254,8 @@ local function attachSecure(visual, e)
     local previous = slotVisual[b]
     if previous and previous ~= visual and previous.secure == b then previous.secure = nil; previous:EnableMouse(true) end
     slotVisual[b], visual.secure = visual, b
+    -- the record shown under it (stack count, merged stacks): item tooltips read it
+    b.ezEntry = e
     b:ClearAllPoints(); b:SetAllPoints(visual)
     b:SetFrameLevel(visual:GetFrameLevel() + 4)
     updateCooldown(b, source, e.empty)
