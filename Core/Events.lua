@@ -12,6 +12,11 @@ for _, event in ipairs(events) do pcall(frame.RegisterEvent, frame, event) end
 -- the last (outermost) call of the same frame decides once on the next update: B, Shift+B and
 -- the bag buttons toggle this window exactly once even when the default code opens bags internally.
 local bagHook = { pending = nil, openedBy = nil, combatPending = false }
+-- With the gamepad UI on, the default bags are left alone: the game's gamepad screens
+-- (character, bags) open them, and one closed by addon code breaks the game's gamepad
+-- navigation until the interface is reloaded (Libs/EzWoWGamePad). This window still
+-- opens from its own button and command.
+local function padUI() return ns.GamePad ~= nil and ns.GamePad.IsActive ~= nil and ns.GamePad.IsActive() == true end
 local function inCombat() return InCombatLockdown and InCombatLockdown() end
 local function locked(f) return inCombat() and type(f.IsProtected) == "function" and f:IsProtected() end
 local function frameToken(f)
@@ -24,7 +29,7 @@ local function resolveBagHook(self)
     local p = bagHook.pending; bagHook.pending = nil
     local w = ns.window
     -- ns.Show/ns.Hide wait for the end of combat when the window is protected.
-    if not p or not ns.cfg.replace or not w then return end
+    if not p or not ns.cfg.replace or not w or padUI() then return end
     if p.kind == "toggle" then
         bagHook.openedBy = nil
         if p.wasShown then ns.Hide() else ns.Show("bags") end
@@ -42,7 +47,7 @@ local resolver = CreateFrame("Frame")
 -- Default bag frames opened on purpose from this window's bag buttons: left open until they close.
 local allowed = {}
 local function noteBagCall(kind, source)
-    if bagHook.allow or not ns.cfg.replace or not ns.window then return end
+    if bagHook.allow or not ns.cfg.replace or not ns.window or padUI() then return end
     local p = bagHook.pending
     if not p then
         p = { wasShown = ns.window:IsShown() }; bagHook.pending = p
@@ -68,7 +73,7 @@ end
 local function suppressBlizzardBag(f)
     if bagHook.allow then allowed[f] = true; return end
     if allowed[f] then return end
-    if not ns.cfg.replace or not f:IsShown() or not isPlayerBagFrame(f) then return end
+    if not ns.cfg.replace or padUI() or not f:IsShown() or not isPlayerBagFrame(f) then return end
     -- Container frames are normally not protected; if one is, wait until combat ends.
     if locked(f) then bagHook.combatPending = true; return end
     f:Hide()
@@ -87,7 +92,7 @@ end
 -- to stay open during combat are replaced by this window.
 function ns.ApplyBagReplacement(handOver)
     bagHook.combatPending = false
-    if not ns.cfg.replace then
+    if not ns.cfg.replace or padUI() then
         bagHook.pending, bagHook.openedBy = nil, nil; resolver:SetScript("OnUpdate", nil)
         return
     end
@@ -117,6 +122,8 @@ end
 -- Opens (or closes) one bag in the default bag frame, even while this window replaces the default bags.
 function ns.ToggleBlizzardBag(bag)
     if type(bag) ~= "number" or type(ToggleBag) ~= "function" then return false end
+    -- (not with the gamepad UI on: see padUI)
+    if padUI() then return false end
     bagHook.allow = true
     local ok
     if bag == ns.API.Keyring() and type(ToggleKeyRing) == "function" then ok = pcall(ToggleKeyRing)
