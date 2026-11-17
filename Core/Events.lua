@@ -1,4 +1,12 @@
 local _, ns = ...
+-- every EzWoW line on the game's tooltips can be turned off at once (Game Menu >
+-- Options > AddOns > EzWoW - Data Sharing; Libs/EzWoWShare TooltipLinesOn)
+local function ezTipsOn()
+    local share = _G.EzWoW_Share
+    if type(share) ~= "table" or type(share.TooltipLinesOn) ~= "function" then return true end
+    local ok, on = pcall(share.TooltipLinesOn)
+    return not ok or on ~= false
+end
 local frame = CreateFrame("Frame")
 local events = { "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_LOGOUT", "BAG_UPDATE_DELAYED", "BAG_UPDATE", "ITEM_LOCK_CHANGED",
     "GET_ITEM_INFO_RECEIVED", "PLAYER_MONEY", "BANKFRAME_OPENED", "BANKFRAME_CLOSED", "PLAYERBANKSLOTS_CHANGED", "BAG_CONTAINER_UPDATE", "BANK_TABS_CHANGED",
@@ -135,6 +143,7 @@ local function tooltips()
     GameTooltip:HookScript("OnTooltipCleared", function(tip) ns.ClearTooltipItem(tip) end)
     local function secret(value) return issecretvalue and issecretvalue(value) end
     local function append(tip, data)
+        if not ezTipsOn() then return end
         -- Mainline passes tooltip data; tip:GetItem() may be missing on this client.
         local id = type(data) == "table" and not secret(data.id) and tonumber(data.id) or nil
         if not id and type(tip.GetItem) == "function" then

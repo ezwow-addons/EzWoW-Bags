@@ -25,6 +25,8 @@ local comboColors = { bg = UI.Theme.bg, border = UI.Theme.border, accent = UI.Th
 function ns.ToggleOptions()
     if ns.options then ns.UpdateOptions(); ns.options:SetShown(not ns.options:IsShown()); return end
     local f = UI.Frame("Frame", "EzWoWBagsOptions", UIParent); ns.options = f
+    -- (taller than the screen: shrunk to fit, Libs/EzWoWGamePad)
+    if ns.GamePad and ns.GamePad.KeepOnScreen then ns.GamePad.KeepOnScreen(f) end
     f.bindings, f.controls = {}, {}
     f:SetSize(420, 600); f:SetPoint("CENTER"); f:SetFrameStrata("DIALOG"); UI.Surface(f)
     f:SetClampedToScreen(true); f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
