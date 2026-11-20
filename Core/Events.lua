@@ -20,10 +20,6 @@ for _, event in ipairs(events) do pcall(frame.RegisterEvent, frame, event) end
 -- the last (outermost) call of the same frame decides once on the next update: B, Shift+B and
 -- the bag buttons toggle this window exactly once even when the default code opens bags internally.
 local bagHook = { pending = nil, openedBy = nil, combatPending = false }
--- With the gamepad UI on, the default bags are left alone: the game's gamepad screens
--- (character, bags) open them, and one closed by addon code breaks the game's gamepad
--- navigation until the interface is reloaded (Libs/EzWoWGamePad). This window still
--- opens from its own button and command.
 local function padUI() return ns.GamePad ~= nil and ns.GamePad.IsActive ~= nil and ns.GamePad.IsActive() == true end
 local function inCombat() return InCombatLockdown and InCombatLockdown() end
 local function locked(f) return inCombat() and type(f.IsProtected) == "function" and f:IsProtected() end
@@ -32,15 +28,85 @@ local function frameToken(f)
     local name = type(f.GetName) == "function" and f:GetName()
     return name or f
 end
+-- Gamepad UI: the default bags are always the combined bag window there, and its OnShow / OnHide
+-- tell the game's gamepad navigation. Shown or hidden from addon code, that navigation runs as
+-- addon code and stays broken until the interface is reloaded (Libs/EzWoWGamePad), so the default
+-- window is never shown or hidden on screen here. While it is closed it is moved under a hidden
+-- frame instead: the game's own opening then never makes it visible (no OnShow, the navigation
+-- never hears of it) and this window opens in its place through the same hooks. It is moved only
+-- while closed (moved while shown it would show or hide); without the gamepad UI it goes back.
+local parking = CreateFrame("Frame"); parking:Hide()
+local parkedFrom
+local function combinedBags()
+    local f = _G.ContainerFrameCombinedBags
+    return type(f) == "table" and type(f.SetParent) == "function" and f or nil
+end
+local function parked()
+    local f = combinedBags()
+    return f ~= nil and f:GetParent() == parking
+end
+local function setParent(f, parent)
+    local keep = FrameUtil and FrameUtil.SetParentMaintainRenderLayering
+    if type(keep) == "function" then pcall(keep, f, parent) else pcall(f.SetParent, f, parent) end
+end
+function ns.SyncBagParking()
+    local f = combinedBags()
+    if not f or locked(f) then return end
+    if ns.cfg.replace and ns.window and padUI() then
+        if parked() or f:IsShown() then return end
+        parkedFrom = f:GetParent()
+        setParent(f, parking)
+    elseif parked() then
+        -- not visible under the hidden frame: hiding it runs no OnHide
+        if f:IsShown() then bagHook.ownHide = true; f:Hide(); bagHook.ownHide = nil end
+        setParent(f, parkedFrom or UIParent)
+        parkedFrom = nil
+    end
+end
+-- The default bags opened out of sight close with this window, so the game's bag button opens them again.
+local function closeParked()
+    local f = combinedBags()
+    if not f or not parked() then return end
+    if f:IsShown() and not locked(f) then bagHook.ownHide = true; f:Hide(); bagHook.ownHide = nil end
+    -- (as the default window does when it closes: the items seen are no longer new)
+    local items, getSlots = C_NewItems, C_Container and C_Container.GetContainerNumSlots
+    if not (items and type(items.RemoveNewItem) == "function" and type(getSlots) == "function") then return end
+    for bag = 0, math.max(tonumber(NUM_TOTAL_BAG_FRAMES) or 4, 4) do
+        local ok, slots = pcall(getSlots, bag)
+        for slot = 1, ok and tonumber(slots) or 0 do pcall(items.RemoveNewItem, bag, slot) end
+    end
+end
+-- the default bags are on screen (gamepad UI, not moved away yet): they are left to the game
+local function padLeavesBags() return padUI() and not parked() end
+-- the gamepad moves in the EzWoW windows (Libs/EzWoWGamePad), not in a game window
+local function padOnWindow()
+    local pad = ns.GamePad
+    local nav = pad and pad.nav
+    if type(nav) ~= "table" or type(nav.IsGamePadButtonEnabled) ~= "function" then return false end
+    local ok, on = pcall(nav.IsGamePadButtonEnabled, nav)
+    return (ok and on == true) or pad.boundSecure == true
+end
 local function resolveBagHook(self)
     self:SetScript("OnUpdate", nil)
     local p = bagHook.pending; bagHook.pending = nil
     local w = ns.window
     -- ns.Show/ns.Hide wait for the end of combat when the window is protected.
-    if not p or not ns.cfg.replace or not w or padUI() then return end
+    if not p or not ns.cfg.replace or not w or padLeavesBags() then return end
     if p.kind == "toggle" then
         bagHook.openedBy = nil
-        if p.wasShown then ns.Hide() else ns.Show("bags") end
+        -- Gamepad: the gamepad's bag command (p.takePad; not the character screen opening its bags)
+        -- gives this window the gamepad even from a game window that holds it (bank, vendor...), as
+        -- the default bags take it. Already open there, the command moves the gamepad here instead
+        -- of closing it (then B closes it).
+        local takePad = p.takePad and padUI() and not inCombat() and ns.GamePad.EnterHUD
+        if p.wasShown and takePad and w:IsShown() and not padOnWindow() then
+            pcall(ns.GamePad.EnterHUD, false)
+            return
+        end
+        if p.wasShown then ns.Hide() else
+            ns.Show("bags")
+            if takePad and w:IsShown() and not padOnWindow() then pcall(ns.GamePad.EnterHUD, false) end
+        end
     elseif p.kind == "open" then
         -- Same rule as the default UI: only an opener that found the bags closed may close them again.
         if not w:IsShown() then bagHook.openedBy = p.source; ns.Show("bags") end
@@ -54,14 +120,14 @@ end
 local resolver = CreateFrame("Frame")
 -- Default bag frames opened on purpose from this window's bag buttons: left open until they close.
 local allowed = {}
-local function noteBagCall(kind, source)
-    if bagHook.allow or not ns.cfg.replace or not ns.window or padUI() then return end
+local function noteBagCall(kind, source, takePad)
+    if bagHook.allow or not ns.cfg.replace or not ns.window or padLeavesBags() then return end
     local p = bagHook.pending
     if not p then
         p = { wasShown = ns.window:IsShown() }; bagHook.pending = p
         resolver:SetScript("OnUpdate", resolveBagHook)
     end
-    p.kind, p.source = kind, source
+    p.kind, p.source, p.takePad = kind, source, takePad
 end
 -- Player bags 0-4 and the reagent bag. On the old bank layout bag 5 is a bank bag, so it is left alone there.
 local function playerBag(id)
@@ -100,10 +166,13 @@ end
 -- to stay open during combat are replaced by this window.
 function ns.ApplyBagReplacement(handOver)
     bagHook.combatPending = false
-    if not ns.cfg.replace or padUI() then
+    ns.SyncBagParking()
+    if not ns.cfg.replace then
         bagHook.pending, bagHook.openedBy = nil, nil; resolver:SetScript("OnUpdate", nil)
         return
     end
+    -- (gamepad UI: default bags on screen are never hidden from here, see SyncBagParking)
+    if padUI() then return end
     local hidden = false
     for _, f in ipairs(blizzardBagFrames()) do hidden = suppressBlizzardBag(f) or hidden end
     if handOver and hidden and ns.window and not ns.window:IsShown() and not locked(ns.window) then ns.Show("bags") end
@@ -114,11 +183,31 @@ local function replaceBags()
     end
     hook("ToggleBag", function(id) if playerBag(id) then noteBagCall("toggle") end end)
     hook("ToggleBackpack", function() noteBagCall("toggle") end)
-    hook("ToggleAllBags", function() noteBagCall("toggle") end)
+    -- (true: the gamepad's bag commands; the gamepad character screen opens its bags with
+    -- ToggleBackpack, which wraps the call below and so decides last)
+    hook("ToggleAllBags", function() noteBagCall("toggle", nil, true) end)
+    -- (the gamepad UI's Bags entry of the Start menu calls this one directly)
+    hook("ToggleBackpack_Combined", function() noteBagCall("toggle", nil, true) end)
     hook("OpenBackpack", function(f) noteBagCall("open", frameToken(f)) end)
     hook("OpenAllBags", function(f) noteBagCall("open", frameToken(f)) end)
     hook("CloseBackpack", function(f) noteBagCall("close", frameToken(f)) end)
     hook("CloseAllBags", function(f) noteBagCall("close", frameToken(f)) end)
+    -- a full-screen game frame takes the default bags in (a new parent): moved away again while closed
+    hook("ContainerFrame_SetFullScreenFrame", function() ns.SyncBagParking() end)
+    hook("ContainerFrame_ClearFullScreenFrame", function() ns.SyncBagParking() end)
+    if ns.window then pcall(ns.window.HookScript, ns.window, "OnHide", closeParked) end
+    -- The game also closes its bags by hiding the window itself (closing the gamepad character
+    -- screen does): while moved away, that closes this window too, as it would the default bags.
+    -- Only when it was open (the game hides it while closed too); inside a toggle or a close
+    -- call that call decides instead (the outermost call wins, see resolveBagHook).
+    local bags = combinedBags()
+    if bags then
+        pcall(hooksecurefunc, bags, "Show", function() if parked() then bagHook.parkedOpen = true end end)
+        pcall(hooksecurefunc, bags, "Hide", function()
+            local was = bagHook.parkedOpen; bagHook.parkedOpen = nil
+            if was and not bagHook.ownHide and parked() then noteBagCall("close") end
+        end)
+    end
     for _, f in ipairs(blizzardBagFrames()) do
         if type(f.HookScript) == "function" then
             pcall(f.HookScript, f, "OnShow", suppressBlizzardBag)
@@ -130,7 +219,7 @@ end
 -- Opens (or closes) one bag in the default bag frame, even while this window replaces the default bags.
 function ns.ToggleBlizzardBag(bag)
     if type(bag) ~= "number" or type(ToggleBag) ~= "function" then return false end
-    -- (not with the gamepad UI on: see padUI)
+    -- (not with the gamepad UI on: see SyncBagParking)
     if padUI() then return false end
     bagHook.allow = true
     local ok
@@ -250,6 +339,8 @@ frame:SetScript("OnUpdate", function(_, dt)
     elseif shareElapsed >= 1 then shareElapsed = 0; ns.Auction.SyncPrices() end
     if elapsed >= .15 then
         elapsed = 0
+        -- (the gamepad UI turned on or off, the default bags closed by the game)
+        ns.SyncBagParking()
         ns.TickMove()
         if ns.dirty then
             ns.dirty = false; ns.ScanStorage("bags")

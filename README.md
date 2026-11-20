@@ -103,6 +103,8 @@ WoW Forever (`Interface: 16001`) · `/ezbags`, `/ezb`
 | ⑥ | 시세 기록 보관 (일) 30~120 | 60 |
 | ⑦ | 아이템 잠금 사용 · 모든 잠금 해제 | 켬 |
 
+- 기본 가방 대체는 게임패드 UI에서도 됩니다. 시작 메뉴의 "가방"이나 캐릭터 창이 기본 가방 대신 이 창을 엽니다. 캐릭터·상인 같은 게임 창과 함께 열려 패드가 그 창에 있으면, 시작 메뉴의 "가방"을 고르면 패드가 이 창으로 옵니다. B로 닫으면 패드가 그 창으로 돌아갑니다.
+
 ### 명령어 (`/ezbags`, `/ezb`)
 
 | 명령어 | 설명 |
@@ -223,6 +225,8 @@ While the bank, mail, trade or a vendor is open, right-click a header → pick t
 | ⑥ | Undercut: copper 0–10000000 or percent 0–50 (button switches) | 1 copper |
 | ⑥ | Keep price history (days) 30–120 | 60 |
 | ⑦ | Use item lock · Unlock all | On |
+
+- Replace default bags also works with the gamepad UI: Bags in the Start menu and the character screen open this window instead of the default bags. When it opens next to a game window (character, vendor) that keeps the gamepad, pick Bags in the Start menu to move the gamepad here; B closes it and gives the gamepad back to that window.
 
 ### Slash commands (`/ezbags`, `/ezb`)
 
