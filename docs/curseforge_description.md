@@ -62,7 +62,7 @@ A bag addon for WoW Forever that shows your bags and bank in one window, grouped
 - **Trade summary whisper**: after a trade, the items and gold that changed hands are whispered to the other player. Both can be turned off.
 
 ## Settings (`/ezbags settings`)
-- **General**: language (automatic + 8 languages), replace default bags, combine stacks.
+- **General**: language (automatic + 8 languages), replace default bags.
 - **Merchant**: auto-sell grey junk, auto-repair gear.
 - **Item icons**: purpose labels, equipment levels, individual free slots, new item category.
 - **View**: view, item sorting, category sorting, items per row, category columns, icon size, window scale, opacity.
@@ -150,7 +150,7 @@ WoW Forever용 가방 애드온입니다. 가방·은행을 하나의 창에서 
 - **거래 내역 귓속말**: 거래를 마치면 주고받은 물건과 금액을 상대에게 귓속말로 보냅니다. 두 기능 모두 끌 수 있습니다.
 
 ## 설정 (`/ezbags settings`)
-- **일반**: 언어(자동 + 8개 언어), 기본 가방 대체, 묶음 합계 표시.
+- **일반**: 언어(자동 + 8개 언어), 기본 가방 대체.
 - **상인**: 회색 잡템 자동 판매, 장비 자동 수리.
 - **아이콘 표시**: 아이템 용도, 장비 레벨, 빈 칸 개별 표시, 새 아이템 분류.
 - **보기**: 보기 방식, 아이템 정렬, 분류 정렬, 줄당 칸 수, 분류 열 수, 아이콘 크기, 창 크기, 불투명도.

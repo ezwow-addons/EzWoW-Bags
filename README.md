@@ -83,7 +83,6 @@ WoW Forever (`Interface: 16001`) · `/ezbags`, `/ezb`
 |---|---|---|
 | ① | 언어 (자동 + 8개 언어) | 자동 |
 | ① | 기본 가방 대체 (바로 적용) | 켬 |
-| ① | 묶음 합계 표시 | 켬 |
 | ② | 회색 잡템 자동 판매 (Shift를 누른 채 상점을 열면 건너뜀) | 켬 |
 | ② | 장비 자동 수리 (Shift를 누른 채 상점을 열면 건너뜀) | 켬 |
 | ② | 돈 출입 채팅 알림 | 켬 |
@@ -206,7 +205,6 @@ While the bank, mail, trade or a vendor is open, right-click a header → pick t
 |---|---|---|
 | ① | Language (automatic + 8 languages) | Automatic |
 | ① | Replace default bags (applies immediately) | On |
-| ① | Combine stacks | On |
 | ② | Auto-sell grey junk (hold Shift while opening the vendor to skip) | On |
 | ② | Auto-repair gear (hold Shift while opening the vendor to skip) | On |
 | ② | Money changes in chat | On |

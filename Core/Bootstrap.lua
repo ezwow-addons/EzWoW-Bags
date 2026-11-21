@@ -3,7 +3,7 @@ _G.EzWoW_Bags = ns
 ns.name = addon
 ns.defaults = {
     replace = true, columns = 12, sectionColumns = 2, size = 30,
-    scale = 1, opacity = .96, view = "sections", merge = true,
+    scale = 1, opacity = .96, view = "sections",
     itemLevel = true, labels = true, emptySlots = false, newSection = false,
     itemSort = "name", sectionSort = "name", growUp = false,
     language = "auto", categories = {}, custom = {}, assignments = {},

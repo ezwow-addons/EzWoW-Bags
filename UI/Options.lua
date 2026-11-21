@@ -92,7 +92,6 @@ function ns.ToggleOptions()
     end
     local function endChecks() if column == 1 then column = 0; y = y + 26 end; y = y + 8 end
     check("replace", "기본 가방 대체", "Replace default bags", "B 키와 가방 버튼이 기본 가방 대신 이 창을 엽니다. 바로 적용됩니다.", "B and the bag buttons open this window instead of the default bags. Applies immediately.")
-    check("merge", "묶음 합계 표시", "Combine stacks", "같은 아이템의 수량을 합칩니다. 클릭은 첫 묶음을 조작합니다.", "Combine identical item counts. Clicking acts on the first stack.")
     endChecks()
     section("상인", "Merchant")
     check("autoSellJunk", "회색 잡템 자동 판매", "Auto-sell grey junk",

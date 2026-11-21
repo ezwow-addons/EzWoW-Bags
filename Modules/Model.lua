@@ -25,20 +25,15 @@ function ns.BuildModel(snapshot, query)
             if not cfg.hidden and (not ns.filterCategory or ns.filterCategory == cat) then
                 local section = map[cat]
                 if not section then
-                    section = { id = cat, name = ns.CategoryName(cat), items = {}, count = 0, value = 0, priced = 0, merged = {}, pinned = cfg.pinned }
+                    section = { id = cat, name = ns.CategoryName(cat), items = {}, count = 0, value = 0, priced = 0, pinned = cfg.pinned }
                     map[cat] = section; sections[#sections + 1] = section
                 end
                 section.count = section.count + e.count
                 local price = ns.Price(e.id)
                 if price then section.value = section.value + price.unit * e.count; section.priced = section.priced + e.count end
-                -- Full item link preserves random suffix/enchant variants; bound and unbound stacks never merge.
-                local mergeKey = e.link .. ":" .. tostring(e.bound) .. ":" .. tostring(e.bindType)
-                local merged = ns.cfg.merge and section.merged[mergeKey]
-                if merged then
-                    merged.count = merged.count + e.count; merged.sources[#merged.sources + 1] = e
-                else
-                    e.sources = { raw }; section.items[#section.items + 1] = e; section.merged[mergeKey] = e
-                end
+                -- every stack is its own icon (2026-11-21: combined stacks handed over only their first stack at
+                -- the mailbox and in trade, so stacks are never combined)
+                e.sources = { raw }; section.items[#section.items + 1] = e
             end
         end
     end
