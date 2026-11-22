@@ -46,7 +46,7 @@ WoW Forever (`Interface: 16001`) · `/ezbags`, `/ezb`
 | ⑨ | 시세 그래프 | 시세 탭에서 아이템을 누르면 **최근 30일 동안 조회할 때마다의 최저가**(선과 점)와 등록 수량(막대)을 그래프로 보여 줍니다. 날짜 위에 마우스를 올리면 그날의 가장 낮은 값이 나옵니다. 판매 목록의 **최근 시세**는 마지막으로 조회했을 때의 최저가입니다. |
 | ⑩ | 시세 목록 | **전체 시세 수집**(경매장 전체) 또는 **가방 아이템 조회**(가방에 있는 아이템만). 경매장이 열려 있어야 합니다. 왼쪽에서 아이템 종류로 거를 수 있고, 줄을 오른쪽 클릭하면 구매 창에서 찾습니다. |
 | ⑪ | 경매장 구매 창 | 경매장을 열면 옆에 붙어 열립니다. 이름으로 검색하면 **최저가부터** 보여 주고, 수량을 넣고 **최저가부터 사기**를 누르면 싼 매물부터 삽니다. **모든 구매는 확인 창**(아이템·수량·단가·합계)을 거치며, 골드가 모자라거나 최근 7일 평균보다 많이 비싸면 경고합니다. |
-| ⑫ | 판매 목록 | 가방에서 경매장에 올릴 수 있는 물건을 체크 목록으로 보여 줍니다. 체크한 물건을 하나씩 경매장 판매 창에 올리고 최저가보다 조금 낮은 가격을 넣으며, [올리기](또는 경매장의 등록 버튼)를 누를 때마다 다음 물건으로 넘어갑니다. |
+| ⑫ | 판매 목록 | 가방에서 경매장에 올릴 수 있는 물건을 체크 목록으로 보여 줍니다. 체크한 물건을 하나씩 경매장 판매 창에 올리고 최저가보다 조금 낮은 가격을 넣으며, [올리기](또는 경매장의 등록 버튼)를 누를 때마다 다음 물건으로 넘어갑니다. 여러 개인 물건은 수량을 전부로 맞추고, 여러 묶음이면 남은 묶음을 차례로 다시 올립니다([건너뛰기]로 넘길 수 있음). 목록은 가방이 바뀌면 저절로 새로 고쳐집니다. 재료 가방의 물건은 경매장이 바로 받지 않아, 차례가 오면 일반 가방의 빈 칸으로 옮긴 뒤 올립니다. |
 
 #### 경매장 도우미
 
@@ -60,6 +60,7 @@ WoW Forever (`Interface: 16001`) · `/ezbags`, `/ezb`
 
 - 가방 아이템 **Ctrl+Alt+클릭**은 이 캐릭터에서, **Ctrl+Alt+오른쪽 클릭**은 계정 전체에서 잠그거나 풉니다.
 - 잠근 아이템은 회색 잡템 자동 판매, 분류 이동(상인·우편·거래), 경매장 판매 도우미·판매 목록에서 빠집니다. 은행으로 옮기기는 그대로 됩니다.
+- 잠근 아이템을 상인에게 잘못 팔면(오른쪽 클릭·끌어 놓기) 바로 다시 삽니다. 가방이 가득 차 다시 사지 못하면 채팅으로 알려 주니 상인 창의 되사기 탭에서 사세요.
 - 설정창의 **모든 잠금 해제**로 이 캐릭터와 계정 전체 잠금을 한 번에 풉니다.
 
 #### 그 밖에
@@ -168,7 +169,7 @@ A bag addon that shows your bags and bank in one window, **grouped by category**
 | ⑨ | Price graph | Click an item on the Prices tab to see its **lowest price at every lookup of the last 30 days** (line and dots) and the listed quantity (bars). Hover a day for its lowest value. The **recent price** in the sell list is the lowest price of the latest lookup. |
 | ⑩ | Price list | **Full scan** (whole auction house) or **Scan bag items**. The auction house must be open. Filter by item class on the left; right-click a row to find it in the buy panel. |
 | ⑪ | Auction buy panel | Opens beside the auction house. Search by name to see offers **cheapest first**; enter a quantity and press **Buy cheapest first**. **Every purchase goes through a confirm dialog** (item, quantity, unit price, total), with a warning when you lack the gold or the price is far above the 7-day average. |
-| ⑫ | Sell list | Lists the bag items that can be auctioned, with check boxes. The checked items go into the auction house sell frame one at a time, priced just under the lowest; each **Post** (or the auction house's own post button) moves on to the next one. |
+| ⑫ | Sell list | Lists the bag items that can be auctioned, with check boxes. The checked items go into the auction house sell frame one at a time, priced just under the lowest; each **Post** (or the auction house's own post button) moves on to the next one. An item you have several of is posted in full, stack after stack (**Skip** moves on). The list follows your bags by itself. Items in the reagent bag, which the auction house does not take from there, are moved to a free slot of your regular bags when their turn comes. |
 
 #### Auction helpers
 
@@ -182,6 +183,7 @@ A bag addon that shows your bags and bank in one window, **grouped by category**
 
 - **Ctrl+Alt+click** a bag item to lock or unlock it on this character; **Ctrl+Alt+right-click** for all characters.
 - Locked items are skipped by auto-selling junk, category moves (vendor, mail, trade) and the auction sell helper and sell list. Moving to the bank still works.
+- A locked item sold to a vendor by mistake (right-click or drop) is bought straight back. If your bags are full the chat tells you, and you can get it from the merchant's Buyback tab.
 - **Unlock all** in the settings clears this character's and the account-wide locks.
 
 #### More

@@ -31,9 +31,20 @@ local function bagList()
     return bags
 end
 
-local function itemName(id, link)
+-- The item's name; nil while the game has not loaded it yet (it is asked for then, and the
+-- list fills the name in when it arrives - reagent bag items showed as "#2449", 2026-11-22).
+local function knownName(id, link)
     local name = API.Info(link or id)
-    return name or ("#" .. tostring(id))
+    if type(name) == "string" and name ~= "" and not (issecretvalue and issecretvalue(name)) then return name end
+    if C_Item and C_Item.GetItemNameByID then
+        local ok, byID = pcall(C_Item.GetItemNameByID, id)
+        if ok and type(byID) == "string" and byID ~= "" and not (issecretvalue and issecretvalue(byID)) then return byID end
+    end
+    if C_Item and C_Item.RequestLoadItemDataByID and id then pcall(C_Item.RequestLoadItemDataByID, id) end
+    return nil
+end
+local function itemName(id, link)
+    return knownName(id, link) or ("#" .. tostring(id))
 end
 
 -- total count of an item in the bags
@@ -48,16 +59,84 @@ local function bagCount(id)
     return total
 end
 
--- the bag slot holding this item now (the saved one first: bags may have moved)
-local function findItem(id, bag, slot)
-    local it = bag and API.Item(bag, slot)
-    if it and it.id == id then return bag, slot end
+-- the item ID in the auction house's sell frame now (nil when empty, or when the slot it
+-- points at no longer holds an item: the game's own post check fails on such a frame)
+local function frameItemID(f)
+    local fb, fs = T.SellFrameItem(f)
+    local it = fb and API.Item(fb, fs)
+    if it and C_Item and C_Item.DoesItemExist and ItemLocation then
+        local ok, exists = pcall(C_Item.DoesItemExist, ItemLocation:CreateFromBagAndSlot(fb, fs))
+        if ok and not exists then return nil, fb, fs end
+    end
+    return it and it.id or nil, fb, fs
+end
+local function frameHolds(id)
+    local f = T.ActiveSellFrame()
+    return f ~= nil and frameItemID(f) == id
+end
+-- the auction house takes this stack now (asked without a message)
+local function sellValid(bag, slot)
+    local a = C_AuctionHouse
+    if not (a and a.IsSellItemValid and ItemLocation) then return true end
+    local ok, valid = pcall(a.IsSellItemValid, ItemLocation:CreateFromBagAndSlot(bag, slot), false)
+    return ok and valid and true or false
+end
+local function inReagentBag(bag)
+    local reagent = API.ReagentBag()
+    return reagent ~= nil and bag == reagent
+end
+-- item IDs the auction house refused even outside the reagent bag (this session)
+local refused = {}
+
+-- The stack of the item to put in: one the auction house takes now, else (move = true) one in
+-- the reagent bag - the auction house here does not take items from the reagent bag, so the
+-- list left them out (2026-11-22, Earthroot) - to be moved out first. busy: some stack of it
+-- is locked by the game right now (in the sell frame, or on its way to another slot).
+local function pickStack(id)
+    local reagentStack, busy
     for _, b in ipairs(bagList()) do
         for s = 1, API.Slots(b) do
             local x = API.Item(b, s)
-            if x and x.id == id and not x.locked then return b, s end
+            if x and x.id == id then
+                if x.locked then
+                    busy = true
+                elseif sellValid(b, s) then
+                    return b, s, false, busy
+                elseif inReagentBag(b) and not x.bound and not reagentStack then
+                    reagentStack = { b, s }
+                end
+            end
         end
     end
+    if reagentStack and not refused[id] then return reagentStack[1], reagentStack[2], true, busy end
+    return nil, nil, nil, busy
+end
+
+-- a free slot of a plain bag (not the reagent bag; no quiver, ammo or other special bag)
+local function freePlainSlot()
+    for bag = 0, 4 do
+        local _, family = API.Free(bag)
+        if (tonumber(family) or 0) == 0 then
+            for slot = 1, API.Slots(bag) do
+                if not API.Item(bag, slot) then return bag, slot end
+            end
+        end
+    end
+    return nil
+end
+-- moves the stack to a free plain bag slot; true when the move was made
+local function moveOutOfReagentBag(bag, slot)
+    if InCombatLockdown and InCombatLockdown() then return false end
+    if GetCursorInfo and GetCursorInfo() then return false end
+    local pickup = API.Container("PickupContainerItem")
+    local tb, ts = freePlainSlot()
+    if not (pickup and tb) then return false, "room" end
+    pcall(pickup, bag, slot)
+    if not (GetCursorInfo and GetCursorInfo()) then return false end
+    pcall(pickup, tb, ts)
+    -- not taken there: back where it was
+    if GetCursorInfo and GetCursorInfo() and ClearCursor then ClearCursor(); return false end
+    return true
 end
 
 local function vendorPrice(id)
@@ -96,6 +175,8 @@ function S.Scan()
                 if a.IsSellItemValid then
                     local ok, v = pcall(a.IsSellItemValid, loc, false)
                     valid = ok and v and true or false
+                    -- refused only for being in the reagent bag: listed, moved out when its turn comes
+                    if not valid and inReagentBag(bag) and not it.bound and not refused[it.id] then valid = true end
                 else
                     valid = not it.bound
                 end
@@ -105,8 +186,10 @@ function S.Scan()
                     if row then
                         row.count = row.count + (it.count or 1)
                     else
+                        local name = knownName(it.id, it.link)
                         row = { id = it.id, bag = bag, slot = slot, link = it.link, icon = it.icon, quality = quality,
-                            count = it.count or 1, commodity = commodity, name = itemName(it.id, it.link) }
+                            count = it.count or 1, commodity = commodity, name = name or ("#" .. tostring(it.id)),
+                            nameMissing = name == nil }
                         -- recent auction price hardly above the shop price: the shop is the better buyer
                         local vendor, avg = vendorPrice(it.id), recentAverage(it.id)
                         row.vendorBetter = vendor > 0 and avg ~= nil and avg < vendor * 1.15
@@ -124,6 +207,25 @@ function S.Scan()
     SCAN_AT = now()
 end
 
+-- the rows of the list (read by the tests)
+function S.Items() return items end
+function S.FillNames()
+    local changed = false
+    for _, r in ipairs(items) do
+        if r.nameMissing then
+            local name = knownName(r.id, r.link)
+            if name then r.name, r.nameMissing, changed = name, nil, true end
+        end
+    end
+    if changed and not run then
+        table.sort(items, function(x, y)
+            if x.name ~= y.name then return x.name < y.name end
+            return (x.bag * 100 + x.slot) < (y.bag * 100 + y.slot)
+        end)
+    end
+    return changed
+end
+
 local function checkedCount()
     local n = 0
     for _, r in ipairs(items) do if checked[r.id] then n = n + 1 end end
@@ -137,11 +239,62 @@ local function setStatus(text)
     if F then F.status:SetText(text or "") end
 end
 
-local function maxQuantity()
+-- only while the frame still holds this item: a click on a frame that was posted or
+-- changed meanwhile left the game's own sell frame with no quantity
+local function maxQuantity(id)
     local f = T.ActiveSellFrame()
-    local input = f and f.QuantityInput
+    if not f or (id and frameItemID(f) ~= id) then return end
+    local input = f.QuantityInput
     local button = input and input.MaxButton
-    if button and type(button.Click) == "function" then pcall(button.Click, button) end
+    if button and type(button.Click) == "function" and (not button.IsShown or button:IsShown()) then pcall(button.Click, button) end
+end
+-- More than one of the item: the sell frame starts at a quantity of 1 for some items, so
+-- only one went up and the list moved on (2026-11-22). The quantity is set to all of it,
+-- once the frame has the item and again after its own price fill.
+local function wholeQuantity(id)
+    if bagCount(id) <= 1 or not C_Timer then return end
+    C_Timer.After(.4, function() maxQuantity(id) end)
+    C_Timer.After(1.2, function() maxQuantity(id) end)
+end
+
+-- Puts a stack of cur.id in the sell frame, moving one out of the reagent bag first when
+-- needed (then cur.moving until it has arrived). True: in the frame or on its way.
+local MOVE_WAIT_TRIES = 8
+local loadNext
+local function loadInto(cur)
+    local bag, slot, move, busy = pickStack(cur.id)
+    if bag and not move then
+        if T.Sell(bag, slot) and frameHolds(cur.id) then
+            cur.moving, cur.loadedAt = nil, now()
+            wholeQuantity(cur.id)
+            return true
+        end
+        return false
+    end
+    local function waitAndRetry()
+        cur.moving, cur.waits = true, (cur.waits or 0) + 1
+        if not C_Timer then return false end
+        C_Timer.After(.5, function()
+            if not (run and run.current == cur and cur.moving) then return end
+            if not loadInto(cur) then run.current = nil; loadNext() end
+            S.Render()
+        end)
+        return true
+    end
+    if (cur.waits or 0) >= MOVE_WAIT_TRIES then
+        if cur.moving then refused[cur.id] = true end
+        return false
+    end
+    if bag and move then
+        local moved, why = moveOutOfReagentBag(bag, slot)
+        if moved then return waitAndRetry() end
+        if why == "room" then ns.Print(ns.Text("sellListNoRoom")) end
+        return false
+    end
+    -- nothing to take now, but a stack is still on its way: look again shortly
+    if busy and cur.moving then return waitAndRetry() end
+    if cur.moving then refused[cur.id] = true end
+    return false
 end
 
 local function finish(message)
@@ -151,29 +304,48 @@ local function finish(message)
     setStatus(message)
 end
 
-local function loadNext()
+loadNext = function()
     if not run then return end
     run.current = nil
     while run.index < #run.queue do
         run.index = run.index + 1
         local r = run.queue[run.index]
-        local bag, slot = findItem(r.id, r.bag, r.slot)
-        if bag and T.Sell(bag, slot) then
-            run.current = { id = r.id, name = r.name, before = bagCount(r.id), loadedAt = now() }
-            if r.commodity and C_Timer then C_Timer.After(.4, maxQuantity) end
-            S.Render()
-            return
-        end
+        local cur = { id = r.id, name = r.name, before = bagCount(r.id), loadedAt = now() }
+        run.current = cur
+        if loadInto(cur) then S.Render(); return end
+        run.current = nil
     end
     finish(txt("sellListDone"))
 end
 
--- the current item left the bags (posted): on to the next one
+-- The current item left the bags (posted). Some of it still in the bags (another stack,
+-- or a quantity below all of it) is put in again before the next item; [Skip] moves on.
+local AGAIN_MAX, BAG_WAIT_TRIES = 20, 6
+local function afterPost(cur, tries)
+    if not run or run.current then return end
+    local left = bagCount(cur.id)
+    -- the bags may not show the post yet: wait for them. A count read too early put the
+    -- stack just posted back in ("can't be auctioned"), and the game's post check then
+    -- failed on the emptied slot (2026-11-22).
+    if left >= cur.before and (tries or 0) < BAG_WAIT_TRIES and C_Timer then
+        C_Timer.After(.5, function() afterPost(cur, (tries or 0) + 1) end)
+        return
+    end
+    if left > 0 and left < cur.before and (cur.again or 0) < AGAIN_MAX then
+        local nextCur = { id = cur.id, name = cur.name, before = left, loadedAt = now(), again = (cur.again or 0) + 1 }
+        run.current = nextCur
+        if loadInto(nextCur) then S.Render(); return end
+        run.current = nil
+    end
+    loadNext()
+end
+S.AfterPost = afterPost
 local function posted()
     if not (run and run.current) then return end
+    local cur = run.current
     run.current = nil
     S.Render()
-    if C_Timer then C_Timer.After(.6, loadNext) else loadNext() end
+    if C_Timer then C_Timer.After(.6, function() afterPost(cur) end) else afterPost(cur) end
 end
 
 function S.Start()
@@ -228,6 +400,7 @@ end
 local function prePost()
     if not (run and run.current) then return false end
     local cur = run.current
+    if cur.moving then return false end         -- still on its way out of the reagent bag
     if cur.warning then
         cur.warning = nil
         cur.postAt = now()
@@ -235,20 +408,24 @@ local function prePost()
     end
     local f, commodity = T.ActiveSellFrame()
     if not f then setStatus(ns.Text("sellNoFrame")); return false end
-    -- a refused post (or anything else) can empty the sell frame while the item stays in
-    -- the bags: put it back instead of posting an empty frame
-    local bag, slot = findItem(cur.id)
-    local fb, fs = T.SellFrameItem(f)
-    if bag and (fb ~= bag or fs ~= slot) then
-        if T.Sell(bag, slot) then
-            cur.loadedAt = now()
+    -- A refused post (or anything else) can empty the sell frame while the item stays in the
+    -- bags: put it back instead of posting an empty frame. Any stack of the item counts: the
+    -- one in the frame is locked by the game, so looking for "the" stack picked another one
+    -- and swapped them on every click - items of more than one stack never went up (2026-11-22).
+    local inFrame, fb, fs = frameItemID(f)
+    if inFrame ~= cur.id then
+        if loadInto(cur) then
             cur.note = (cur.note and (cur.note .. "\n") or "") .. ns.Text("sellListReloaded")
             S.Render()
+        else
+            -- none of it can go up now (all posted, or the auction house does not take it): next item
+            run.current = nil
+            loadNext()
         end
         return false
     end
     cur.postAt, cur.note = now(), nil
-    cur.pending = capturePost(f, commodity, bag, slot)
+    cur.pending = capturePost(f, commodity, fb, fs)
     return true, f
 end
 
@@ -329,7 +506,6 @@ function S.Render()
     local UI = ns.UI
     F.all.text:SetText(ns.Text("sellListAll"))
     F.none.text:SetText(ns.Text("sellListNone"))
-    F.rescan.text:SetText(ns.Text("sellListRescan"))
     F.headLeft:SetText(ns.T("name"))
     F.headMid:SetText(ns.Text("buyQty"))
     F.headRight:SetText(ns.Text("sellListPrice"))
@@ -363,20 +539,22 @@ function S.Render()
     F.post:SetShown(run ~= nil)
     F.skip:SetShown(run ~= nil)
     F.stop:SetShown(run ~= nil)
-    F.all:SetEnabled(not run); F.none:SetEnabled(not run); F.rescan:SetEnabled(not run)
+    F.all:SetEnabled(not run); F.none:SetEnabled(not run)
     F.barBg:SetShown(run ~= nil); F.bar:SetShown(run ~= nil)
     if run then
         local width = (F.barBg:GetWidth() or 0)
         local done = math.max(0, run.index - (run.current and 1 or 0))
         F.bar:SetWidth(math.max(1, width * done / math.max(1, #run.queue)))
-        UI.Primary(F.post, run.current ~= nil and priceReady())
+        UI.Primary(F.post, run.current ~= nil and not run.current.moving and priceReady())
         local cur = run.current
         F.post.text:SetText(ns.Text("sellListPost"))
         F.skip.text:SetText(ns.Text("sellListSkip"))
         F.stop.text:SetText(ns.Text("sellListStop"))
         if cur then
             local step = string.format("%d/%d · %s", run.index, #run.queue, cur.name)
-            setStatus(step .. "\n" .. (cur.note or (priceReady() and ns.Text("sellListReady") or ns.Text("sellListWaitPrice"))))
+            local line = cur.moving and ns.Text("sellListMoving")
+                or cur.note or (priceReady() and ns.Text("sellListReady") or ns.Text("sellListWaitPrice"))
+            setStatus(step .. "\n" .. line)
         end
     else
         F.start.text:SetText(txt("sellListStart", selected))
@@ -401,8 +579,6 @@ function S.Create(P)
     F.all:SetPoint("TOPLEFT", 11, -6); F.all:SetHeight(22)
     F.none = UI.Button(F, "", 86, function() for _, r in ipairs(items) do checked[r.id] = nil end; S.Render() end)
     F.none:SetPoint("LEFT", F.all, "RIGHT", 6, 0); F.none:SetHeight(22)
-    F.rescan = UI.Button(F, "", 86, function() S.Scan(); S.Render() end)
-    F.rescan:SetPoint("LEFT", F.none, "RIGHT", 6, 0); F.rescan:SetHeight(22)
     UI.HeadBand(F, -37)
     F.headLeft = UI.Label(F, "", 10); F.headLeft:SetPoint("TOPLEFT", 56, -42); F.headLeft:SetTextColor(unpack(UI.Theme.muted))
     F.headMid = UI.Label(F, "", 10); F.headMid:SetPoint("TOPLEFT", 158, -42); F.headMid:SetWidth(50); F.headMid:SetJustifyH("RIGHT")
@@ -568,6 +744,10 @@ function S.CreatePriceTab(P)
         end
     end)
     P.refreshPrices:SetPoint("RIGHT", P.priceToggle, "LEFT", -4, 0); P.refreshPrices:SetHeight(22)
+    -- with EzWoW - Tooltip its scan button over the auction window does this; here it only reread
+    local function sharedPrices() return ns.Auction and ns.Auction.TooltipActive and ns.Auction.TooltipActive() end
+    P.refreshPrices:SetShown(not sharedPrices())
+    P:HookScript("OnShow", function() P.refreshPrices:SetShown(not sharedPrices()) end)
     local REFRESH_TEXT = function() return ns.Lang("시세 갱신", "Refresh") end
     P.refreshPrices.text:SetText(REFRESH_TEXT())
     -- while a scan runs: the button says so, and the graph is redrawn as prices come in
@@ -623,8 +803,10 @@ local POST_REPLIES = { "UI_ERROR_MESSAGE", "AUCTION_HOUSE_POST_WARNING", "AUCTIO
     "AUCTION_HOUSE_SHOW_ERROR", "AUCTION_HOUSE_SHOW_NOTIFICATION", "AUCTION_HOUSE_SHOW_FORMATTED_NOTIFICATION",
     "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN" }
 local isReply = {}
+local namesQueued = false
 for _, event in ipairs(POST_REPLIES) do isReply[event] = true end
-for _, event in ipairs({ "AUCTION_HOUSE_AUCTION_CREATED", "AUCTION_HOUSE_CLOSED", "BAG_UPDATE_DELAYED", unpack(POST_REPLIES) }) do
+for _, event in ipairs({ "AUCTION_HOUSE_AUCTION_CREATED", "AUCTION_HOUSE_CLOSED", "BAG_UPDATE_DELAYED",
+    "GET_ITEM_INFO_RECEIVED", "ITEM_DATA_LOAD_RESULT", unpack(POST_REPLIES) }) do
     pcall(events.RegisterEvent, events, event)
 end
 local function plain(v)
@@ -661,6 +843,15 @@ events:SetScript("OnEvent", function(_, event, a1, a2)
         if F then F:Hide() end
         local P = T.GetPanel()
         if P and P.sellToggle then ns.UI.Selected(P.sellToggle, false) end
+    elseif event == "GET_ITEM_INFO_RECEIVED" or event == "ITEM_DATA_LOAD_RESULT" then
+        -- a name the list was waiting for (many may come at once: filled in once, shortly after)
+        if F and F:IsShown() and not namesQueued and C_Timer then
+            namesQueued = true
+            C_Timer.After(.2, function()
+                namesQueued = false
+                if S.FillNames() then S.Render() end
+            end)
+        end
     elseif event == "AUCTION_HOUSE_AUCTION_CREATED" then
         posted()
     elseif event == "BAG_UPDATE_DELAYED" then

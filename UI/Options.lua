@@ -261,8 +261,8 @@ function ns.ToggleOptions()
     end
     section2("아이템 잠금", "Item lock")
     check2("itemLock", "아이템 잠금 사용", "Use item lock",
-        "잠근 아이템은 회색 잡템 자동 판매, 분류 이동(상인·우편·거래), 경매장 판매 도우미에서 빠집니다.",
-        "Locked items are skipped by auto-selling junk, category moves (vendor, mail, trade) and the auction sell helper.")
+        "잠근 아이템은 회색 잡템 자동 판매, 분류 이동(상인·우편·거래), 경매장 판매 도우미에서 빠집니다. 상인에게 잘못 팔면 바로 다시 삽니다.",
+        "Locked items are skipped by auto-selling junk, category moves (vendor, mail, trade) and the auction sell helper. One sold to a vendor by mistake is bought straight back.")
     local clear = UI.Button(f, "", 186, function() ns.Locks.ClearAll(); ns.UpdateOptions(); ns.Refresh() end)
     clear:SetPoint("TOPLEFT", X, -y2)
     bind(function() clear.text:SetText(optionLabel("모든 잠금 해제", "Unlock all") .. " (" .. ns.Locks.Count() .. ")") end)

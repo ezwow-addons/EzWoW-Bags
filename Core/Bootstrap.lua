@@ -84,11 +84,11 @@ function ns.InitDB()
         end
     end
     EzWoW_BagsDB, ns.db, ns.cfg = db, db, s
-    ns.realm = GetRealmName()
+    local guid = UnitGUID and UnitGUID("player")
+    ns.realm = ns.ResolveRealm(db, guid)
     local first = UnitName("player")
     local name = ns.API.PlayerName()
     ns.player = name .. " - " .. ns.realm
-    local guid = UnitGUID and UnitGUID("player")
     local oldKey = first .. " - " .. ns.realm
     -- Keep the old bank snapshot when upgrading from first-name-only keys.
     local old = db.characters[oldKey]
@@ -104,8 +104,96 @@ function ns.InitDB()
         end
     end
     ns.market = ns.realm .. ":" .. (UnitFactionGroup("player") or "Unknown")
+    ns.MergeEmptyRealm(db, name)
     ns.selected, ns.storage = ns.player, "bags"
     ns.baselineUntil = GetTime() + 5
+end
+
+-- The server's name. GetRealmName() has come back empty on this server since the
+-- evening of 2026-11-21: the prices then went to a new ":Horde" market (the older
+-- prices and graphs no longer showed), this character got a new key, and the other
+-- characters dropped out of the lists. The name last seen for this server (the
+-- number in the player GUID), or the one on a character record of this server, is
+-- used then.
+local function plainText(value)
+    if type(value) ~= "string" or (type(issecretvalue) == "function" and issecretvalue(value)) then return nil end
+    if value == "" then return nil end
+    return value
+end
+local function serverOf(guid)
+    if type(guid) ~= "string" or (type(issecretvalue) == "function" and issecretvalue(guid)) then return nil end
+    return guid:match("^Player%-(%d+)%-")
+end
+function ns.ResolveRealm(db, guid)
+    local id = serverOf(guid)
+    local name = plainText(GetRealmName and GetRealmName())
+    if name then
+        if id then
+            db.realmNames = type(db.realmNames) == "table" and db.realmNames or {}
+            db.realmNames[id] = name
+        end
+        return name
+    end
+    if id and type(db.realmNames) == "table" and plainText(db.realmNames[id]) then return db.realmNames[id] end
+    local fromServer
+    for _, char in pairs(type(db.characters) == "table" and db.characters or {}) do
+        if type(char) == "table" and plainText(char.realm) then
+            if guid and char.guid == guid then return char.realm end
+            if id and serverOf(char.guid) == id then fromServer = fromServer or char.realm end
+        end
+    end
+    if fromServer then return fromServer end
+    return plainText(GetNormalizedRealmName and GetNormalizedRealmName()) or ""
+end
+
+-- Data written while the server's name was empty (this character's "Name - " key and
+-- the ":Faction" market) goes back under the server's name once it is known: the
+-- newer price of each item, the price records of both, this character's locks.
+function ns.MergeEmptyRealm(db, name)
+    if ns.realm == "" then return end
+    local own = type(db.characters) == "table" and db.characters[ns.player]
+    if type(own) == "table" and not plainText(own.realm) then own.realm = ns.realm end
+    local faction = UnitFactionGroup("player") or "Unknown"
+    local emptyMarket, market = ":" .. faction, ns.market
+    if type(db.markets) == "table" and type(db.markets[emptyMarket]) == "table" then
+        local from = db.markets[emptyMarket]
+        local to = type(db.markets[market]) == "table" and db.markets[market] or {}
+        to.items = type(to.items) == "table" and to.items or {}
+        for id, price in pairs(type(from.items) == "table" and from.items or {}) do
+            local old = to.items[id]
+            if type(price) == "table" and (type(old) ~= "table" or (tonumber(price.time) or 0) >= (tonumber(old.time) or 0)) then
+                to.items[id] = price
+            end
+        end
+        for _, key in ipairs({ "updatedTime", "fullScan", "requested" }) do
+            local a, b = tonumber(from[key]), tonumber(to[key])
+            if a and (not b or a > b) then to[key] = a end
+        end
+        if (tonumber(from.replicaTime) or 0) > (tonumber(to.replicaTime) or 0) then
+            to.replicaTime, to.replicaCount = from.replicaTime, from.replicaCount
+        end
+        db.markets[market], db.markets[emptyMarket] = to, nil
+    end
+    if type(db.history) == "table" and type(db.history[emptyMarket]) == "table" then
+        local to = type(db.history[market]) == "table" and db.history[market] or {}
+        for id, records in pairs(db.history[emptyMarket]) do
+            to[id] = ns.History.MergeRecords(to[id], records)
+        end
+        db.history[market], db.history[emptyMarket] = to, nil
+    end
+    -- the shared prices remember which market took them: the empty one is this one
+    local scopes = type(EzWoW_TooltipDB) == "table" and EzWoW_TooltipDB.EzWoWBagsPriceScopes
+    if type(scopes) == "table" then
+        for _, scope in pairs(scopes) do
+            if type(scope) == "table" and scope.market == emptyMarket then scope.market = market end
+        end
+    end
+    local emptyKey = tostring(name) .. " - "
+    if emptyKey ~= ns.player and type(db.locks) == "table" and type(db.locks[emptyKey]) == "table" then
+        local to = type(db.locks[ns.player]) == "table" and db.locks[ns.player] or {}
+        for id, value in pairs(db.locks[emptyKey]) do to[id] = value end
+        db.locks[ns.player], db.locks[emptyKey] = to, nil
+    end
 end
 
 function ns.Print(message)

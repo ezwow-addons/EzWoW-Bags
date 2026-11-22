@@ -214,7 +214,9 @@ ns.text = {
     sellListSkip = { "건너뛰기", "Skip", "Überspringen", "Passer", "Saltar", "Пропустить", "跳过", "略過" },
     sellListStop = { "중지", "Stop", "Stopp", "Arrêter", "Detener", "Стоп", "停止", "停止" },
     sellListEmpty = { "가방에 경매장에 올릴 수 있는 물건이 없습니다.", "Nothing in your bags can be auctioned.", "Nichts in deinen Taschen kann versteigert werden.", "Rien dans vos sacs ne peut être mis aux enchères.", "Nada en tus bolsas se puede subastar.", "В сумках нет предметов для аукциона.", "背包中没有可拍卖的物品。", "背包中沒有可拍賣的物品。" },
-    sellListHint = { "체크한 물건을 하나씩 판매 창에 올리고 최저가보다 낮은 가격을 넣습니다. 잠근 아이템과 회색 아이템은 목록에 없습니다.", "Checked items go into the sell frame one at a time with a price under the lowest. Locked and grey items are left out.", "Gewählte Gegenstände kommen nacheinander mit einem Preis unter dem niedrigsten in den Verkaufsbereich. Gesperrte und graue Gegenstände fehlen.", "Les objets cochés passent un par un dans la vente avec un prix sous le plus bas. Objets verrouillés et gris exclus.", "Los objetos marcados pasan uno a uno a la venta con un precio por debajo del mínimo. Se omiten los bloqueados y grises.", "Отмеченные предметы по одному попадают в окно продажи с ценой ниже минимальной. Запертые и серые не показаны.", "勾选的物品逐个放入出售界面，并填入低于最低价的价格。锁定和灰色物品不列出。", "勾選的物品逐一放入出售介面，並填入低於最低價的價格。鎖定和灰色物品不列出。" },
+    sellListMoving = { "재료 가방에서 꺼내는 중…", "Taking it out of the reagent bag…", "Wird aus der Reagenzientasche genommen…", "Sortie du sac de composants…", "Sacándolo de la bolsa de componentes…", "Достаём из сумки для реагентов…", "正在从材料包取出…", "正在從材料包取出…" },
+    sellListNoRoom = { "일반 가방에 빈 칸이 없어 재료 가방의 물건을 올릴 수 없습니다.", "No free slot in your regular bags: items in the reagent bag cannot go up.", "Kein freier Platz in den normalen Taschen: Gegenstände aus der Reagenzientasche können nicht eingestellt werden.", "Aucun emplacement libre dans les sacs normaux : les objets du sac de composants ne peuvent pas être mis en vente.", "No hay hueco libre en las bolsas normales: los objetos de la bolsa de componentes no se pueden subastar.", "Нет свободного места в обычных сумках: предметы из сумки для реагентов не выставить.", "普通背包没有空位：材料包中的物品无法上架。", "一般背包沒有空位：材料包中的物品無法上架。" },
+    sellListHint = { "체크한 물건을 하나씩 판매 창에 올립니다. 여러 개면 전부 올립니다.", "Checked items go into the sell frame one at a time, all of each.", "Markierte Gegenstände kommen nacheinander ins Verkaufsfenster, jeweils alle.", "Les objets cochés vont un par un dans la fenêtre de vente, en totalité.", "Los objetos marcados van uno a uno a la ventana de venta, todos.", "Отмеченные предметы по очереди выставляются в окно продажи, все сразу.", "勾选的物品逐个放入出售窗口，全部数量。", "勾選的物品逐個放入出售視窗，全部數量。" },
     sellListReloaded = { "등록 칸에서 물건이 빠져 다시 넣었습니다. 가격을 확인하고 다시 [올리기]를 누르세요.", "The item had left the sell frame and was put back. Check the price and press [Post] again.",
         "Der Gegenstand war nicht mehr im Verkaufsfenster und wurde wieder eingelegt. Preis prüfen und erneut [Einstellen] drücken.",
         "L'objet avait quitté la fenêtre de vente et a été remis. Vérifiez le prix et appuyez de nouveau sur [Mettre en vente].",
@@ -294,6 +296,17 @@ ns.text = {
     lockOff = { "%s 잠금 해제", "Unlocked %s", "%s entsperrt", "%s déverrouillé", "%s desbloqueado", "%s разблокирован", "已解锁 %s", "已解鎖 %s" },
     lockBlocked = { "%s: 잠긴 아이템이라 판매하지 않습니다.", "%s: locked, so it won't be sold.", "%s: gesperrt, wird nicht verkauft.",
         "%s : verrouillé, il ne sera pas vendu.", "%s: bloqueado, no se venderá.", "%s: заблокирован, не будет продан.", "%s：已锁定，不会出售。", "%s：已鎖定，不會出售。" },
+    lockBoughtBack = { "%s: 잠긴 아이템이라 다시 샀습니다. 팔려면 먼저 잠금을 푸세요.", "%s: locked, so it was bought back. Unlock it first to sell it.",
+        "%s: gesperrt, daher zurückgekauft. Zum Verkaufen zuerst entsperren.", "%s : verrouillé, donc racheté. Déverrouillez-le d'abord pour le vendre.",
+        "%s: bloqueado, así que se ha recomprado. Desbloquéalo primero para venderlo.", "%s: заблокирован, поэтому выкуплен. Чтобы продать, сначала снимите блокировку.",
+        "%s：已锁定，已购回。要出售请先解锁。", "%s：已鎖定，已購回。要出售請先解鎖。" },
+    lockBuybackFailed = { "%s: 잠긴 아이템이 팔렸지만 다시 사지 못했습니다. 상인 창의 되사기 탭에서 사세요.",
+        "%s: a locked item was sold but could not be bought back. Get it from the merchant's Buyback tab.",
+        "%s: gesperrter Gegenstand verkauft, Rückkauf fehlgeschlagen. Über den Rückkauf-Reiter des Händlers zurückholen.",
+        "%s : objet verrouillé vendu, rachat impossible. Récupérez-le dans l'onglet Racheter du marchand.",
+        "%s: se vendió un objeto bloqueado y no se pudo recomprar. Recupéralo en la pestaña Recomprar del vendedor.",
+        "%s: заблокированный предмет продан, выкупить не удалось. Верните его на вкладке «Выкуп» у торговца.",
+        "%s：已锁定的物品被卖出，未能购回。请在商人的购回页签中买回。", "%s：已鎖定的物品被賣出，未能購回。請在商人的購回頁籤中買回。" },
 }
 function ns.Text(key)
     local row = ns.text[key]

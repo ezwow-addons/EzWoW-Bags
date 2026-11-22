@@ -243,7 +243,7 @@ function AH.Results(replicate, cached)
     if (count or 0) == 0 and (total or 0) > 0 then return end
     job.waiting, job.reading = false, true
     job.count, job.total, job.index, job.retry = count or 0, total or count or 0, 1, 0
-    job.pendingRows, job.retryPass = {}, 0
+    job.pendingRows, job.retryPass, job.stalls, job.keepRetrying = {}, 0, 0, nil
     job.pageResult, job.pageQty, job.deadline = {}, {}, now() + 30
     if replicate then job.snapshotTime = AH.replicaTime else job.snapshotTime = nil end
 end
@@ -267,6 +267,24 @@ local function readRow(j, index)
     end
     return true
 end
+-- Rows of items not in the client's cache yet have no count or price; the client
+-- loads them a few hundred at a time. They are read again every half second while
+-- they keep loading and given up after RETRY_STALLS passes without progress
+-- (2026-11-22: three passes dropped hundreds of items from each full scan).
+local RETRY_STALLS, RETRY_MAX = 6, 120
+function AH.KeepRetrying(j, before, after)
+    if after <= 0 then return false end
+    j.stalls = (after < before) and 0 or ((j.stalls or 0) + 1)
+    return j.stalls < RETRY_STALLS and (j.retryPass or 0) < RETRY_MAX
+end
+-- The full list may arrive over several seconds: without its event, reading starts
+-- once the row count has stayed the same for a few looks.
+function AH.ReplicateSteady(j, count)
+    count = tonumber(count) or 0
+    if count <= 0 then j.seenCount, j.steady = nil, 0; return false end
+    if j.seenCount == count then j.steady = (j.steady or 0) + 1 else j.seenCount, j.steady = count, 0 end
+    return j.steady >= 10
+end
 function AH.Tick()
     local j = AH.job
     if not j then return end
@@ -275,7 +293,7 @@ function AH.Tick()
     if j.deadline and now() > j.deadline then AH.Stop(ns.Text("timeout")); return end
     if j.pendingReplicate then requestReplicate(j); return end
     if j.pending then sendQuery(j); return end
-    if j.replicate and j.waiting and AH.NativeCount() > 0 then
+    if j.replicate and j.waiting and AH.ReplicateSteady(j, AH.NativeCount()) then
         -- Also poll: other addons can receive the native result before our event handler runs.
         AH.Results(true); j = AH.job
     end
@@ -283,9 +301,11 @@ function AH.Tick()
     if j.retryAt then
         if now() < j.retryAt then return end
         j.retryAt = nil; j.retryPass = j.retryPass + 1
+        local before = #j.pendingRows
         local pending = {}
         for _, index in ipairs(j.pendingRows) do if not readRow(j, index) then pending[#pending + 1] = index end end
         j.pendingRows = pending
+        j.keepRetrying = AH.KeepRetrying(j, before, #pending)
     end
     local limit = math.min(j.count, j.index + 199)
     while j.index <= limit do
@@ -297,7 +317,7 @@ function AH.Tick()
         ns.window.status:SetText(ns.T("scan") .. " · " .. math.min(j.index - 1, j.count) .. "/" .. j.count)
     end
     if j.index <= j.count then return end
-    if #j.pendingRows > 0 and j.retryPass < 3 then j.retryAt = now() + .5; return end
+    if #j.pendingRows > 0 and (j.retryPass == 0 or j.keepRetrying) then j.retryAt = now() + .5; return end
     j.skipped = (j.skipped or 0) + #j.pendingRows
     for id, price in pairs(j.pageResult) do
         if not j.result[id] or price < j.result[id] then j.result[id] = price end

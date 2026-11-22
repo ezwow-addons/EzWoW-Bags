@@ -130,6 +130,7 @@ function ns.ScanStorage(storage)
         end
     end
     local char = ns.db.characters[ns.player] or { realm = ns.realm }
+    if ns.realm ~= "" then char.realm = ns.realm end
     char.guid = UnitGUID and UnitGUID("player") or char.guid
     if UnitClass then local _, class = UnitClass("player"); char.class = class end
     if UnitRace then local _, race = UnitRace("player"); char.race = race end

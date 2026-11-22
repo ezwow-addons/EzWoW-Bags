@@ -41,6 +41,30 @@ local function prune(s, minDay)
     end
     return nil
 end
+-- Two record strings of one item as one: time order, each record once, at most MAX_POINTS
+-- (the newest). Used when two markets of the same server are put together.
+function H.MergeRecords(a, b)
+    if type(a) ~= "string" or a == "" then return type(b) == "string" and b or nil end
+    if type(b) ~= "string" or b == "" then return a end
+    local records, seen = {}, {}
+    for _, s in ipairs({ a, b }) do
+        for record in s:gmatch("[^;]+") do
+            local first = tonumber(record:match("^(%d+):"))
+            if first and not seen[record] then
+                seen[record] = true
+                records[#records + 1] = { at = first < DAY_LIMIT and first * DAY or first, record = record }
+            end
+        end
+    end
+    table.sort(records, function(x, y)
+        if x.at ~= y.at then return x.at < y.at end
+        return x.record < y.record
+    end)
+    local out = {}
+    for i = math.max(1, #records - MAX_POINTS + 1), #records do out[#out + 1] = records[i].record end
+    return table.concat(out, ";")
+end
+
 function H.Record(id, unit, qty, stamp)
     id, unit, qty = tonumber(id), tonumber(unit), tonumber(qty)
     if not id or not unit or unit <= 0 or unit ~= unit then return end
