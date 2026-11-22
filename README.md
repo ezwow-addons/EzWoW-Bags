@@ -21,6 +21,8 @@ WoW Forever (`Interface: 16001`) · `/ezbags`, `/ezb`
 
 ![통합 가방 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_ko.png)
 
+![경매장 판매 목록과 구매 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_ko.png)
+
 ![설정창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_ko.png)
 
 > 실제 게임 화면입니다(WoW Forever, 한국어 클라이언트). 캐릭터 · 다른 플레이어 이름과 채팅 내용은 가렸습니다.
@@ -143,6 +145,8 @@ A bag addon that shows your bags and bank in one window, **grouped by category**
 ### Screenshots
 
 ![Bag window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_en.png)
+
+![Auction sell list and buy panel](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_en.png)
 
 ![Settings window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_en.png)
 

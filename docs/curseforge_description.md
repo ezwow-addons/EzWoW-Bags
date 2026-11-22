@@ -11,6 +11,8 @@ A bag addon for WoW Forever that shows your bags and bank in one window, grouped
 
 ![Bag window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_en.png)
 
+![Auction sell list and buy panel](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_en.png)
+
 ![Settings window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_en.png)
 
 *In-game screenshots with the addon set to English. The game client is Korean, so game text such as zone, item and spell names stays Korean. Character and player names and chat text are blurred.*
@@ -44,13 +46,14 @@ A bag addon for WoW Forever that shows your bags and bank in one window, grouped
 
 ### Auction house helpers
 - **Sell helper**: Alt+click a bag item to put it into the auction house sell frame with a price just under the lowest (undercut in copper or percent). You press the post button yourself. It never goes below the vendor price and warns when the price is far below the 7-day average.
-- **Sell list**: check several bag items and post them one by one; items that sell better at a shop are marked and left out of "Select all".
+- **Sell list**: check several bag items and post them one by one. Every stack of an item goes up, reagent bag items included. Items that sell better at a shop are marked and left out of "Select all".
 - **Buy panel** beside the auction house: search by name, offers listed cheapest first, buy a quantity cheapest first. **Every purchase asks for confirmation**, with a warning when the price is far above the 7-day average.
 - Alt+right-click a bag item, or right-click a row on the Prices tab, to look it up in the buy panel.
 
 ### Item lock
 - **Ctrl+Alt+click** locks an item on this character, **Ctrl+Alt+right-click** for all characters.
 - Locked items are skipped by auto-sell, category moves to a vendor, mail or trade, and auction posting.
+- A locked item sold to a vendor by mistake is bought straight back.
 
 ### Vendor (on by default)
 - **Auto-sell grey junk**: every grey item in your bags is sold when a vendor opens, and the gold is reported in chat.
@@ -99,6 +102,8 @@ WoW Forever용 가방 애드온입니다. 가방·은행을 하나의 창에서 
 
 ![통합 가방 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_ko.png)
 
+![경매장 판매 목록과 구매 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_ko.png)
+
 ![설정창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_ko.png)
 
 *실제 게임 화면입니다(WoW Forever, 한국어 클라이언트). 캐릭터 · 다른 플레이어 이름과 채팅 내용은 가렸습니다.*
@@ -132,13 +137,14 @@ WoW Forever용 가방 애드온입니다. 가방·은행을 하나의 창에서 
 
 ### 경매장 도우미
 - **판매 도우미**: 가방 아이템을 Alt+클릭하면 경매장 판매 창에 올리고 최저가보다 조금 낮은 가격(동 또는 %)을 채웁니다. 등록 버튼은 직접 누릅니다. 상점 판매가 아래로는 내리지 않고, 최근 7일 평균보다 많이 낮으면 알려 줍니다.
-- **판매 목록**: 가방 물건 여러 개를 체크해 하나씩 차례로 올립니다. 상점에 파는 편이 나은 물건은 표시하고 "전체 선택"에서 뺍니다.
+- **판매 목록**: 가방 물건 여러 개를 체크해 하나씩 차례로 올립니다. 같은 물건은 여러 묶음 모두, 재료 가방에 있는 것도 올립니다. 상점에 파는 편이 나은 물건은 표시하고 "전체 선택"에서 뺍니다.
 - **구매 창**(경매장 옆): 이름으로 검색하면 최저가부터 보여 주고, 수량만큼 최저가부터 삽니다. **모든 구매는 확인 창**을 거치며, 최근 7일 평균보다 많이 비싸면 경고합니다.
 - 가방 아이템 Alt+오른쪽 클릭이나 시세 탭 줄 오른쪽 클릭으로 구매 창에서 찾습니다.
 
 ### 아이템 잠금
 - **Ctrl+Alt+클릭**은 이 캐릭터에서, **Ctrl+Alt+오른쪽 클릭**은 계정 전체에서 잠급니다.
 - 잠근 아이템은 자동 판매, 상인·우편·거래로 분류 이동, 경매장 등록에서 빠집니다.
+- 잠근 아이템을 상인에게 잘못 팔면 바로 다시 삽니다.
 
 ### 상인 (처음부터 켜짐)
 - **회색 잡템 자동 판매**: 상점을 열면 가방의 회색 아이템을 모두 팔고 받은 금액을 채팅창에 알려 줍니다.

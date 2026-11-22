@@ -727,6 +727,11 @@ function S.CreatePriceTab(P)
     P.priceToggle = UI.Button(P, "", 40, function() S.TogglePriceTab() end)
     P.priceToggle:SetPoint("RIGHT", P.sellToggle, "LEFT", -4, 0); P.priceToggle:SetHeight(22)
     P.priceToggle.text:SetText(ns.T("prices"))
+    -- as wide as its word (2026-11-22: "Prices" showed as "Pric..." in English)
+    do
+        local w = math.ceil((P.priceToggle.text:GetStringWidth() or 0) + 14)
+        if w > 40 then P.priceToggle:SetWidth(w); P.priceToggle.text:SetWidth(w - 8) end
+    end
     P.refreshPrices = UI.Button(P, "", 62, function()
         local AH = ns.Auction
         if not (AH and AH.Start) or AH.job then return end
