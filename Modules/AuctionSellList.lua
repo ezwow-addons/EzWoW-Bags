@@ -88,12 +88,14 @@ end
 -- item IDs the auction house refused even outside the reagent bag (this session)
 local refused = {}
 
--- The stack of the item to put in: one the auction house takes now, else (move = true) one in
--- the reagent bag - the auction house here does not take items from the reagent bag, so the
--- list left them out (2026-11-22, Earthroot) - to be moved out first. busy: some stack of it
--- is locked by the game right now (in the sell frame, or on its way to another slot).
+-- The stack of the item to put in: one the auction house takes now, else an unbound one the
+-- game's answer said no to for the moment (gear, 2026-11-23: put in, and the sell frame says
+-- whether it takes it), else (move = true) one in the reagent bag - the auction house here does
+-- not take items from the reagent bag, so the list left them out (2026-11-22, Earthroot) - to be
+-- moved out first. busy: some stack of it is locked by the game right now (in the sell frame, or
+-- on its way to another slot).
 local function pickStack(id)
-    local reagentStack, busy
+    local plainStack, reagentStack, busy
     for _, b in ipairs(bagList()) do
         for s = 1, API.Slots(b) do
             local x = API.Item(b, s)
@@ -102,13 +104,19 @@ local function pickStack(id)
                     busy = true
                 elseif sellValid(b, s) then
                     return b, s, false, busy
-                elseif inReagentBag(b) and not x.bound and not reagentStack then
-                    reagentStack = { b, s }
+                elseif x.bound then
+                    -- bound: never to the auction house
+                elseif inReagentBag(b) then
+                    reagentStack = reagentStack or { b, s }
+                else
+                    plainStack = plainStack or { b, s }
                 end
             end
         end
     end
-    if reagentStack and not refused[id] then return reagentStack[1], reagentStack[2], true, busy end
+    if refused[id] then return nil, nil, nil, busy end
+    if plainStack then return plainStack[1], plainStack[2], false, busy end
+    if reagentStack then return reagentStack[1], reagentStack[2], true, busy end
     return nil, nil, nil, busy
 end
 
@@ -175,8 +183,16 @@ function S.Scan()
                 if a.IsSellItemValid then
                     local ok, v = pcall(a.IsSellItemValid, loc, false)
                     valid = ok and v and true or false
-                    -- refused only for being in the reagent bag: listed, moved out when its turn comes
-                    if not valid and inReagentBag(bag) and not it.bound and not refused[it.id] then valid = true end
+                    -- The game's answer is no for the reagent bag (moved out when its turn comes) and
+                    -- for a while for some unbound gear it does take (2026-11-23: a Bind-on-Equip axe
+                    -- and shoulders never showed, yet the same call said yes a moment later). Every
+                    -- unbound item is listed; one the auction house really refuses when its turn comes
+                    -- is left out for the rest of the session.
+                    if not valid and not it.bound and not refused[it.id] then
+                        valid = true
+                        -- (its data asked for now: the answer may wait for it)
+                        if C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, it.id) end
+                    end
                 else
                     valid = not it.bound
                 end
@@ -269,6 +285,8 @@ local function loadInto(cur)
             wholeQuantity(cur.id)
             return true
         end
+        -- the auction house would not take it: no longer listed this session
+        if not sellValid(bag, slot) then refused[cur.id] = true end
         return false
     end
     local function waitAndRetry()
