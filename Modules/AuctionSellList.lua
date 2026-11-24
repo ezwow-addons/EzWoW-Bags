@@ -398,6 +398,24 @@ local function capturePost(f, commodity, bag, slot)
         buyout = num(call("GetBuyoutPrice")) or amount, unit = num(call("GetUnitPrice")) or amount }
 end
 
+-- The game's own post check reads the deposit, which the game works out only once the sell frame has
+-- the item's quantity and data; until then it is empty and the check stops with a Lua error in the
+-- game's code (2026-11-24, CanPostItem "attempt to compare nil with number" - the pcall around
+-- PostItem does not keep it from being reported). Asked first, without posting.
+local function frameReady(f)
+    if type(f.GetDepositAmount) == "function" then
+        local ok, deposit = pcall(f.GetDepositAmount, f)
+        if not ok or num(deposit) == nil then return false end
+    end
+    if type(f.GetQuantity) == "function" then
+        local ok, quantity = pcall(f.GetQuantity, f)
+        quantity = ok and num(quantity) or nil
+        if not quantity or quantity < 1 then return false end
+    end
+    return true
+end
+S.FrameReady = frameReady
+
 -- the auction house asked to confirm the last post: confirm it with the same values
 local function confirmPost(cur)
     local a, p = C_AuctionHouse, cur.pending
@@ -440,6 +458,14 @@ local function prePost()
             run.current = nil
             loadNext()
         end
+        return false
+    end
+    -- not ready to post (no deposit worked out yet, or no quantity): the quantity is filled again
+    -- and the next click posts
+    if not frameReady(f) then
+        maxQuantity(cur.id)
+        cur.note = ns.Text("sellListNotReady")
+        S.Render()
         return false
     end
     cur.postAt, cur.note = now(), nil
