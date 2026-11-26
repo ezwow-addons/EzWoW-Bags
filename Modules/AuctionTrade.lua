@@ -93,6 +93,33 @@ local function sellFrameItem(f)
     local ok2, bag, slot = pcall(loc.GetBagAndSlot, loc)
     if ok2 then return bag, slot end
 end
+-- Before the game's sell frame reads its deposit on an auction house message event: a frame that points
+-- at a bag slot whose stack went up is emptied, and a quantity above what is left comes down to it, as the
+-- game's own post and quantity box do (2026-11-26: CanPostItem "attempt to compare nil with number" in
+-- the game's code - the deposit of an empty slot or of more than there is cannot be worked out). This
+-- addon's event frame was registered before the sell frame's (which registers when it is shown).
+local function tidySellFrame()
+    local f = activeSellFrame()
+    if not f or type(f.GetItem) ~= "function" then return end
+    local bag, slot = sellFrameItem(f)
+    if not bag or not (C_Item and C_Item.DoesItemExist and ItemLocation) then return end
+    local okExists, exists = pcall(C_Item.DoesItemExist, ItemLocation:CreateFromBagAndSlot(bag, slot))
+    if not okExists then return end
+    if exists == false then
+        if type(f.ClearPost) == "function" then pcall(f.ClearPost, f) end
+        local okItem, still = pcall(f.GetItem, f)
+        if okItem and still ~= nil and type(f.SetItem) == "function" then pcall(f.SetItem, f, nil, nil, true) end
+        return
+    end
+    local input = f.QuantityInput
+    if not (input and type(input.GetQuantity) == "function" and type(input.SetQuantity) == "function"
+        and type(f.GetMaxQuantity) == "function") then return end
+    local okQ, quantity = pcall(input.GetQuantity, input)
+    local okM, most = pcall(f.GetMaxQuantity, f)
+    quantity, most = okQ and num(quantity), okM and num(most)
+    if quantity and most and most >= 1 and quantity > most then pcall(input.SetQuantity, input, most) end
+end
+T.TidySellFrame = tidySellFrame
 local function priceAmount(f)
     local input = f and f.PriceInput
     if input and type(input.GetAmount) == "function" then
@@ -439,6 +466,10 @@ end
 local function createDialog()
     local UI = ns.UI
     D = UI.Frame("Frame", "EzWoWBagsBuyConfirm", UIParent)
+    -- hidden before its OnHide script is set (2026-11-26, user: the first click on an item showed an empty
+    -- dialog): a new frame is shown, and hiding it after the script was set cancelled the purchase that was
+    -- opening it, so the dialog was never filled in
+    D:Hide()
     D:SetSize(340, 190); D:SetPoint("CENTER", 0, 120); D:SetFrameStrata("DIALOG"); D:SetToplevel(true)
     D:EnableMouse(true); D:SetClampedToScreen(true)
     UI.Surface(D)
@@ -470,7 +501,6 @@ local function createDialog()
     D.cancel:SetPoint("BOTTOMRIGHT", -14, 12)
     D:SetScript("OnHide", function() if purchase and not purchase.sent then cancelPurchase() end end)
     if UISpecialFrames then UISpecialFrames[#UISpecialFrames + 1] = "EzWoWBagsBuyConfirm" end
-    D:Hide()
 end
 local function openDialog(p)
     if purchase and not purchase.sent then cancelPurchase() end
@@ -889,7 +919,7 @@ end
 ---------------------------------------------------------------------------
 local events = CreateFrame("Frame")
 for _, event in ipairs({ "AUCTION_HOUSE_SHOW", "AUCTION_HOUSE_CLOSED", "AUCTION_HOUSE_THROTTLED_SYSTEM_READY",
-    "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", "AUCTION_HOUSE_BROWSE_RESULTS_ADDED",
+    "AUCTION_HOUSE_THROTTLED_MESSAGE_SENT", "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", "AUCTION_HOUSE_BROWSE_RESULTS_ADDED",
     "COMMODITY_SEARCH_RESULTS_UPDATED", "ITEM_SEARCH_RESULTS_UPDATED", "ITEM_KEY_ITEM_INFO_RECEIVED",
     "COMMODITY_PRICE_UPDATED", "COMMODITY_PRICE_UNAVAILABLE", "COMMODITY_PURCHASE_SUCCEEDED", "COMMODITY_PURCHASE_FAILED",
     "AUCTION_HOUSE_PURCHASE_COMPLETED", "AUCTION_HOUSE_SHOW_ERROR", "PLAYER_MONEY" }) do
@@ -897,6 +927,9 @@ for _, event in ipairs({ "AUCTION_HOUSE_SHOW", "AUCTION_HOUSE_CLOSED", "AUCTION_
 end
 events:SetScript("OnEvent", function(_, event, a1, a2)
     if not ns.ready then return end
+    if event == "AUCTION_HOUSE_THROTTLED_SYSTEM_READY" or event == "AUCTION_HOUSE_THROTTLED_MESSAGE_SENT" then
+        pcall(tidySellFrame)
+    end
     if event == "AUCTION_HOUSE_SHOW" then ns.state.auction = true; onShow(0)
     elseif event == "AUCTION_HOUSE_CLOSED" then
         sell, pendingQuery, state.autoDetail = nil, nil, nil

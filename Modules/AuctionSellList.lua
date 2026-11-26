@@ -420,6 +420,15 @@ S.FrameReady = frameReady
 local function confirmPost(cur)
     local a, p = C_AuctionHouse, cur.pending
     if not (a and p and ItemLocation and p.duration) then return false end
+    -- The sell frame keeps the post it asked about: its own confirm empties the frame afterwards, as the
+    -- game's dialog does (2026-11-26: confirming through the API left the frame pointing at the posted
+    -- stack's empty slot, and the game's next auction house event stopped in its post check,
+    -- CanPostItem "attempt to compare nil with number").
+    local f = T.ActiveSellFrame()
+    if f and type(f.ConfirmPost) == "function" then
+        local okFrame, done = pcall(f.ConfirmPost, f)
+        if okFrame and done then return true end
+    end
     local loc = ItemLocation:CreateFromBagAndSlot(p.bag, p.slot)
     local ok, result
     if p.commodity and a.ConfirmPostCommodity then
