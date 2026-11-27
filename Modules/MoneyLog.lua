@@ -221,7 +221,7 @@ hook("WithdrawGuildBankMoney", function() MoneyLog.Note(1, ns.Text("moneyGuildBa
 -----------------------------------------------------------------------------
 -- Trade: the money line, and the whisper to the partner
 -----------------------------------------------------------------------------
-local trade                         -- { name (whisper), display, note, give, get, giveMoney, getMoney, accepted }
+local trade                         -- { name (whisper: "Name Surname"), display, note, give, get, giveMoney, getMoney, accepted }
 
 local function plainMoney(copper)
     copper = math.floor(tonumber(copper) or 0)
@@ -324,9 +324,10 @@ frame:SetScript("OnEvent", function(_, event, a1, a2)
             end)
         end
     elseif event == "TRADE_SHOW" then
-        local name = call(UnitName, "NPC")
-        if secret(name) then name = nil end
-        trade = { name = type(name) == "string" and name ~= "" and name or nil, display = unitDisplayName("NPC") }
+        -- the whisper goes to the name as the game shows it, "Name Surname": a player with a surname is
+        -- "not online" by the first name alone (2026-11-27: both trade lines for "깜박이좀 커라" went to "깜박이좀")
+        local display = unitDisplayName("NPC")
+        trade = { name = display, display = display }
         trade.note = MoneyLog.Note(0, ns.Text("moneyTrade"), trade.display, nil, nil, 3600)
         snapshot()
     elseif event == "TRADE_PLAYER_ITEM_CHANGED" or event == "TRADE_TARGET_ITEM_CHANGED" or event == "TRADE_MONEY_CHANGED" then
