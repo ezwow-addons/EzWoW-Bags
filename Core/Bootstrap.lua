@@ -228,11 +228,13 @@ function ns.MoneyShort(value, size)
     return table.concat(parts, " ")
 end
 
-function ns.Refresh()
+-- bagChange: redrawn because the bags changed (not by a click in the window); while the mouse is over
+-- the window the icons then keep their places (UI/Window.lua, renderHold)
+function ns.Refresh(bagChange)
     if ns.rendering then ns.viewDirty = true; return end
     if ns.window and ns.window:IsShown() then
         ns.rendering = true
-        local ok, err = pcall(ns.Render)
+        local ok, err = pcall(ns.Render, bagChange)
         ns.rendering = false
         if not ok then error(err) end
     end

@@ -8,7 +8,7 @@ end
 function AH.Message(message, quiet)
     AH.status = message
     if not quiet then ns.Print(message) end
-    ns.Refresh()
+    ns.Refresh(true)
 end
 function AH.NativeCount()
     if not C_AuctionHouse or not C_AuctionHouse.GetNumReplicateItems then return 0 end
@@ -122,7 +122,7 @@ end
 function AH.Stop(message)
     AH.job = nil
     if message then AH.status = message; ns.Print(message) end
-    ns.Refresh()
+    ns.Refresh(true)
 end
 local function finish()
     local job = AH.job

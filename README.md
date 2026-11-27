@@ -19,11 +19,11 @@ WoW Forever (`Interface: 16001`) · `/ezbags`, `/ezb`
 
 ### 화면 미리보기
 
-![통합 가방 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_ko.png)
+![통합 가방 창](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/ui_ko.png)
 
-![경매장 판매 목록과 구매 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_ko.png)
+![경매장 판매 목록과 구매 창](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/auction_ko.png)
 
-![설정창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_ko.png)
+![설정창](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/settings_ko.png)
 
 > 실제 게임 화면입니다(WoW Forever, 한국어 클라이언트). 캐릭터 · 다른 플레이어 이름과 채팅 내용은 가렸습니다.
 
@@ -93,7 +93,7 @@ WoW Forever (`Interface: 16001`) · `/ezbags`, `/ezb`
 | ③ | 아이템 용도 · 장비 레벨 | 켬 |
 | ③ | 빈 칸 개별 표시 · 새 아이템 분류 | 끔 |
 | ④ | 보기: 분류 · 전체 · 목록 | 분류 |
-| ④ | 아이템 정렬: 이름 · 등급 / 분류 정렬: 이름 · 크기 | 이름 · 이름 |
+| ④ | 아이템 정렬: 이름 · 등급 | 이름 |
 | ④ | 줄당 칸 수 (전체) 6~20 · 분류 열 수 1~3 | 12 · 2 |
 | ④ | 아이콘 크기 28~56 · 창 크기 0.65~1.4 · 불투명도 0.4~1 | 30 · 1 · 0.96 |
 | ⑤ | 숨김·꺼진 분류 복원 · 창 위치 초기화 | - |
@@ -144,11 +144,11 @@ A bag addon that shows your bags and bank in one window, **grouped by category**
 
 ### Screenshots
 
-![Bag window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_en.png)
+![Bag window](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/ui_en.png)
 
-![Auction sell list and buy panel](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_en.png)
+![Auction sell list and buy panel](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/auction_en.png)
 
-![Settings window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_en.png)
+![Settings window](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/settings_en.png)
 
 > In-game screenshots with the addon set to English. The game client is Korean, so game text such as zone, item and spell names stays Korean. Character and player names and chat text are blurred.
 
@@ -218,7 +218,7 @@ While the bank, mail, trade or a vendor is open, right-click a header → pick t
 | ③ | Purpose labels · Equipment levels | On |
 | ③ | Individual free slots · New item category | Off |
 | ④ | View: Sections · Grid · List | Sections |
-| ④ | Item sorting: Name · Quality / Category sorting: Name · Size | Name · Name |
+| ④ | Item sorting: Name · Quality | Name |
 | ④ | Items per row (total) 6–20 · Category columns 1–3 | 12 · 2 |
 | ④ | Icon size 28–56 · Window scale 0.65–1.4 · Opacity 0.4–1 | 30 · 1 · 0.96 |
 | ⑤ | Restore categories · Reset position | - |
@@ -268,4 +268,4 @@ If you find this addon useful, you can support its development.
 
 [Buy Me a Coffee ☕](https://buymeacoffee.com/qqhrqqhr2)
 
-<a href="https://buymeacoffee.com/qqhrqqhr2"><img src="https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/bmc_qr_160.png" alt="Buy Me a Coffee 후원 QR 코드" width="160" /></a>
+<a href="https://buymeacoffee.com/qqhrqqhr2"><img src="https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/bmc_qr_160.png" alt="Buy Me a Coffee 후원 QR 코드" width="160" /></a>

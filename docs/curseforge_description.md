@@ -9,11 +9,11 @@ CurseForge summary (KO): 분류별 통합 가방, 아이템 용도·잠금, 부�
 
 A bag addon for WoW Forever that shows your bags and bank in one window, grouped by category. Icons carry a short purpose label, you can look into your other characters' bags and banks, and auction prices are recorded every day and shown in tooltips, category totals and a 30-day graph. At the auction house it helps you post and buy, at a vendor it sells grey junk and repairs your gear, and locked items are never sold or moved by mistake.
 
-![Bag window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_en.png)
+![Bag window](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/ui_en.png)
 
-![Auction sell list and buy panel](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_en.png)
+![Auction sell list and buy panel](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/auction_en.png)
 
-![Settings window](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_en.png)
+![Settings window](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/settings_en.png)
 
 *In-game screenshots with the addon set to English. The game client is Korean, so game text such as zone, item and spell names stays Korean. Character and player names and chat text are blurred.*
 
@@ -21,7 +21,7 @@ A bag addon for WoW Forever that shows your bags and bank in one window, grouped
 
 ### One bag window
 - Bags (and the bank) in one window, grouped into categories: equipment, consumables, materials, quest items, recipes, junk and your own custom categories.
-- Three views: **Sections**, **Grid** and **List**; sort items by name or quality and categories by name or size.
+- Three views: **Sections**, **Grid** and **List**; sort items by name or quality. Categories keep a fixed order (consumables, equipment, materials, quest, other, keys last), side-by-side categories line up, and icons stay in place while the mouse is over the window. Items in the reagent bag or a profession bag (herbs, enchanting, mining ...) have a green outer box; empty slots are small boxes.
 - Category list on the left: click to show one category, right-click for its menu, drop an item on a custom category to put it there.
 - Category headers fold and unfold; right-click to pin, hide or disable, or to move the whole category to the bank, mail, trade or a vendor one stack at a time.
 - Bag icons with free slot counts (keyring, bags 4·3·2·1, backpack); drop an item on a bag to put it there.
@@ -68,7 +68,7 @@ A bag addon for WoW Forever that shows your bags and bank in one window, grouped
 - **General**: language (automatic + 8 languages), replace default bags.
 - **Merchant**: auto-sell grey junk, auto-repair gear.
 - **Item icons**: purpose labels, equipment levels, individual free slots, new item category.
-- **View**: view, item sorting, category sorting, items per row, category columns, icon size, window scale, opacity.
+- **View**: view, item sorting, items per row, category columns, icon size, window scale, opacity.
 - **Categories & window**: restore hidden categories, reset position, create a custom category from a name and a search.
 - **Auction house**: sell helper, buy panel, price trend on tooltips, undercut (copper or %), days of price history to keep.
 - **Item lock**: use item lock, unlock all.
@@ -100,11 +100,11 @@ Languages: English, 한국어, Deutsch, Français, Español, Русский, 简
 
 WoW Forever용 가방 애드온입니다. 가방·은행을 하나의 창에서 분류별로 보여 주고, 아이콘 위에 아이템 용도를 표시하며, 다른 캐릭터의 가방·은행을 볼 수 있습니다. 경매장 시세를 날마다 기록해 툴팁·분류 합계·30일 그래프로 보여 주고, 경매장에서는 판매·구매를 도와주며, 상점을 열면 회색 잡템을 팔고 장비를 수리해 줍니다. 잠근 아이템은 실수로 팔거나 옮기지 않습니다.
 
-![통합 가방 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/ui_ko.png)
+![통합 가방 창](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/ui_ko.png)
 
-![경매장 판매 목록과 구매 창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/auction_ko.png)
+![경매장 판매 목록과 구매 창](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/auction_ko.png)
 
-![설정창](https://raw.githubusercontent.com/qqhrqqhr2/EzWoW-Bags/master/docs/images/settings_ko.png)
+![설정창](https://raw.githubusercontent.com/ezwow-addons/EzWoW-Bags/master/docs/images/settings_ko.png)
 
 *실제 게임 화면입니다(WoW Forever, 한국어 클라이언트). 캐릭터 · 다른 플레이어 이름과 채팅 내용은 가렸습니다.*
 
@@ -112,7 +112,7 @@ WoW Forever용 가방 애드온입니다. 가방·은행을 하나의 창에서 
 
 ### 통합 가방 창
 - 가방(과 은행)을 한 창에서 장비·소모품·재료·퀘스트·제조법·잡동사니와 사용자 분류로 나눠 보여 줍니다.
-- **분류 · 전체 · 목록** 세 가지 보기, 아이템 정렬(이름·등급)과 분류 정렬(이름·크기).
+- **분류 · 전체 · 목록** 세 가지 보기, 아이템 정렬(이름·등급). 분류는 소모품·장비·재료·퀘스트·기타 순(열쇠는 맨 뒤)으로 자리가 고정되고, 옆 분류와 제목 높이를 맞추며, 마우스가 창 위에 있는 동안 아이콘이 움직이지 않습니다. 재료 가방·전문기술 가방(약초·마법부여·채광 등)에 든 아이템은 초록 바깥 테두리, 빈 칸은 작은 상자로 보입니다.
 - 왼쪽 분류 목록: 누르면 그 분류만 표시, 오른쪽 클릭은 분류 메뉴, 아이템을 끌어 놓으면 사용자 분류에 넣기.
 - 분류 머리글은 접고 펼칠 수 있고, 오른쪽 클릭으로 고정·숨김·끄기, 은행·우편·거래·상인으로 한 묶음씩 옮기기.
 - 가방 아이콘과 빈 칸 수(열쇠고리, 가방 4·3·2·1, 배낭). 아이템을 가방 아이콘에 끌어 놓으면 그 가방에 넣습니다.
@@ -159,7 +159,7 @@ WoW Forever용 가방 애드온입니다. 가방·은행을 하나의 창에서 
 - **일반**: 언어(자동 + 8개 언어), 기본 가방 대체.
 - **상인**: 회색 잡템 자동 판매, 장비 자동 수리.
 - **아이콘 표시**: 아이템 용도, 장비 레벨, 빈 칸 개별 표시, 새 아이템 분류.
-- **보기**: 보기 방식, 아이템 정렬, 분류 정렬, 줄당 칸 수, 분류 열 수, 아이콘 크기, 창 크기, 불투명도.
+- **보기**: 보기 방식, 아이템 정렬, 줄당 칸 수, 분류 열 수, 아이콘 크기, 창 크기, 불투명도.
 - **분류·창**: 숨김·꺼진 분류 복원, 창 위치 초기화, 이름 + 검색식으로 사용자 분류 만들기.
 - **경매장**: 판매 도우미, 경매장 옆 구매 창, 툴팁 시세 추세, 가격 낮추기(동 또는 %), 시세 기록 보관 일수.
 - **아이템 잠금**: 아이템 잠금 사용, 모든 잠금 해제.

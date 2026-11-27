@@ -404,6 +404,15 @@ local function itemButton(index)
     -- the default bags' quest-start "!" over the whole icon
     b.questBang = b:CreateTexture(nil, "OVERLAY", nil, 1); b.questBang:SetAllPoints(b.icon)
     b.questBang:SetTexture(TEXTURE_ITEM_QUEST_BANG or "Interface\\ContainerFrame\\UI-Icon-QuestBang"); b.questBang:Hide()
+    -- an item in the reagent bag or a profession bag (herbs, leather, mining, engineering ...) gets an outer
+    -- box in the colour of that bag's empty slots, so where it sits shows (2026-11-26, user)
+    b.bagEdge = UI.Frame("Frame", nil, b)
+    b.bagEdge:SetPoint("TOPLEFT", -2, 2); b.bagEdge:SetPoint("BOTTOMRIGHT", 2, -2)
+    if b.bagEdge.SetBackdrop then
+        b.bagEdge:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 2 })
+        b.bagEdge:SetBackdropBorderColor(.35, .65, .3, 1)
+    end
+    b.bagEdge:Hide()
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp"); b:RegisterForDrag("LeftButton")
     b:SetScript("OnClick", clickItem)
     b:SetScript("OnDragStart", function(self) clickItem(self, "LeftButton") end)
@@ -412,10 +421,19 @@ local function itemButton(index)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return b
 end
+-- An empty slot is a smaller box in the middle of its cell (2026-11-26, user), so it never looks like an item;
+-- the cell itself, and so every other icon, stays where it is.
+local EMPTY_INSET = .2
+local function placeButton(b, x, y, width, height, small)
+    local inset = small and math.floor(math.min(width, height) * EMPTY_INSET) or 0
+    b:ClearAllPoints(); b:SetPoint("TOPLEFT", x + inset, -(y + inset)); b:SetSize(width - 2 * inset, height - 2 * inset)
+    b.icon:SetSize(height - 2 * inset - 4, height - 2 * inset - 4)
+end
 local function renderItem(e, index, x, y, width, height, list)
     local b = itemButton(index); b.entry, b.priceID = e, nil
-    b:ClearAllPoints(); b:SetPoint("TOPLEFT", x, -y); b:SetSize(width, height)
-    b.icon:SetSize(height - 4, height - 4); b.icon:SetTexture(e.icon or "Interface\\PaperDoll\\UI-Backpack-EmptySlot")
+    b.place = { x, y, width, height, list }   -- (renderHold draws a new item in the same place)
+    placeButton(b, x, y, width, height, e.empty and not list)
+    b.icon:SetTexture(e.icon or "Interface\\PaperDoll\\UI-Backpack-EmptySlot")
     b.icon:SetAlpha(e.empty and .18 or (e.locked and .45 or 1))
     local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[e.quality or 1]
     b:SetBackdropBorderColor(c and c.r or .2, c and c.g or .3, c and c.b or .35, 1)
@@ -429,10 +447,17 @@ local function renderItem(e, index, x, y, width, height, list)
     b.money:SetText(""); b.priceAge:Hide()
     b.lock:SetShown(not e.empty and e.id ~= nil and ns.Locks.IsLocked(e.id, ns.selected))
     b.questBang:SetShown(not e.empty and e.questStart == true)
+    local bagKind = e.bag and ns.bagKinds and ns.bagKinds[e.bag]
+    b.bagEdge:SetShown(bagKind == "reagent" or bagKind == "special")
     b:Show()
     attachSecure(b, e)
 end
-local function renderHeader(section, index, x, y, width)
+-- a header with an item value under the name (narrow columns) is taller
+local function headerHeight(section, width)
+    return (width < 260 and (section.value or 0) > 0) and 40 or 23
+end
+-- rowHeight: the tallest header of its row, so the items of one row start at the same height
+local function renderHeader(section, index, x, y, width, rowHeight)
     local b = headers[index]
     if not b then
         b = UI.Button(ns.content, "", width, function(self, mouse)
@@ -444,8 +469,8 @@ local function renderHeader(section, index, x, y, width)
         b.summary = UI.Label(b, "", 10); b.summary:SetPoint("BOTTOMLEFT", 29, 4); b.summary:SetTextColor(unpack(UI.Theme.accent))
         headers[index] = b
     end
-    local compact = width < 260 and (section.value or 0) > 0
-    local height = compact and 40 or 23
+    local compact = headerHeight(section, width) > 23
+    local height = math.max(compact and 40 or 23, rowHeight or 0)
     b.category = section.id; b:ClearAllPoints(); b:SetPoint("TOPLEFT", x, -y); b:SetSize(width, height)
     b.text:SetWidth(width - 12); b.text:SetJustifyH("LEFT")
     local cfg = ns.CategoryConfig(section.id)
@@ -733,6 +758,8 @@ function ns.SortStorage()
     if type(fn) ~= "function" then return end
     if API.InCombat() then ns.Print(ns.Text("combat")); return end
     ns.moveQueue = nil
+    -- the sort moves everything: laid out in full while it runs, not held in place (2026-11-26)
+    ns.NoHoldFor(3)
     pcall(fn)
 end
 local function footerText(snapshot)
@@ -782,11 +809,69 @@ local function renderCombat(f)
         end
     end
 end
-function ns.Render()
+-- While the mouse is over the window, a change in the bags keeps every icon where it is: a sold or moved
+-- item leaves its place dimmed and empty, an item that comes into a shown slot appears in that place, and
+-- counts change in place. The window is laid out again once the mouse leaves it (Core/Events.lua).
+-- (2026-11-26, user: icons moved as counts and the list changed, so clicks hit the wrong item and sold it)
+-- Not while the game's sort or a move queue reshuffles the bags (2026-11-26: after "sort" every held place
+-- showed whatever had moved into its slot, items in the wrong sections); a burst of bag changes keeps it off.
+function ns.NoHoldFor(seconds)
+    ns.noHoldUntil = math.max(ns.noHoldUntil or 0, GetTime() + seconds)
+end
+-- Only where a click hands an item over (merchant, mail, trade, auction house, bank); not while an item is
+-- on the cursor or just after it was put down (2026-11-26: a drag to another bag left the item drawn among
+-- the empty slots and an empty box in its section).
+function ns.HoldPlaces()
+    local f = ns.window
+    if not f or not f:IsShown() or ns.mode == "prices" or not API.UsableSnapshot() then return false end
+    local st = ns.state or {}
+    if not (st.merchant or st.mail or st.trade or st.auction or st.bank) then return false end
+    if ns.moveQueue or API.CursorBusy() or GetTime() < (ns.noHoldUntil or 0) then return false end
+    return f:IsMouseOver() and true or false
+end
+-- more places than this that now hold another item: a reshuffle, laid out in full instead
+local HOLD_MAX_NEW = 3
+local function renderHold(f)
+    local changed = 0
+    for _, b in ipairs(items) do
+        local e = b.entry
+        if b:IsShown() and e and e.bag and e.slot and b.place then
+            local live = API.Item(e.bag, e.slot)
+            if live and live.id and (e.empty or live.id ~= e.id) then changed = changed + 1 end
+        end
+    end
+    if changed > HOLD_MAX_NEW then return false end
+    ns.holdPending = true
+    f.footer:SetText(footerText(ns.Snapshot()))
+    for index, b in ipairs(items) do
+        local e, place = b.entry, b.place
+        if b:IsShown() and e and e.bag and e.slot and place then
+            local live = API.Item(e.bag, e.slot)
+            if live and live.id and (e.empty or live.id ~= e.id) then
+                live.bag, live.slot = e.bag, e.slot
+                local fresh = ns.Enrich(ns.Copy(live)); fresh.sources = { live }
+                renderItem(fresh, index, place[1], place[2], place[3], place[4], place[5])
+            elseif not live and not e.empty then
+                e.count, e.locked = 0, false
+                if not place[5] then placeButton(b, place[1], place[2], place[3], place[4], true) end
+                b.count:SetText(""); b.icon:SetAlpha(.18)
+                b.lock:Hide(); b.questBang:Hide(); b.fresh:Hide(); b.level:SetText(""); b.tag:SetText("")
+                if b.secure then updateCooldown(b.secure, e, true) end
+            elseif live and not e.empty then
+                e.count, e.locked = live.count or 0, live.locked
+                b.count:SetText(e.count > 1 and e.count or ""); b.icon:SetAlpha(live.locked and .45 or 1)
+                if b.secure then updateCooldown(b.secure, e, false) end
+            end
+        end
+    end
+    return true
+end
+function ns.Render(bagChange)
     local f = ns.window
     if not f or not ns.cfg then return end
     if ns.LayoutLocked() then renderCombat(f); return end
-    ns.layoutPending = false
+    if bagChange and ns.laidOut and ns.HoldPlaces() and renderHold(f) then return end
+    ns.layoutPending, ns.holdPending = false, false
     local layout = ns.BagLayout()
     local desiredWidth = layout.width
     ns.ResizeWindow(desiredWidth, f:GetHeight(), ns.cfg.scale)
@@ -809,6 +894,11 @@ function ns.Render()
     for _, b in ipairs(items) do b:Hide() end
     for _, b in ipairs(headers) do b:Hide() end
     local snapshot = ns.Snapshot()
+    -- bag -> its kind (reagent / profession bags get the outer box, renderItem)
+    ns.bagKinds = {}
+    for _, container in ipairs(snapshot and snapshot.containers or {}) do
+        if container.bag then ns.bagKinds[container.bag] = ns.BagKind(container, ns.storage) end
+    end
     local prices = ns.mode == "prices"
     local model, err = {}, nil
     if not prices then model, err = ns.BuildModel(snapshot, f.search:GetText()) end
@@ -898,30 +988,40 @@ function ns.Render()
             for _, s in ipairs(model) do for _, e in ipairs(s.items) do combined.items[#combined.items + 1] = e; combined.count = combined.count + e.count end end
             model = { combined }
         end
-        local lanes, heights = layout.lanes, {}
-        for i = 1, lanes do heights[i] = 0 end
-        local headerCount = 0
-        for _, section in ipairs(model) do
-            local lane = 1
-            for i = 2, lanes do if heights[i] < heights[lane] then lane = i end end
-            local x, y = layout.offsets[lane], heights[lane]
-            local laneWidth = layout.widths[lane]
-            headerCount = headerCount + 1
-            local headerHeight = renderHeader(section, headerCount, x, y, laneWidth)
-            y = y + headerHeight + 5
-            if not ns.CategoryConfig(section.id).collapsed then
-                local list = ns.cfg.view == "list"
-                local cols = list and 1 or layout.columns[lane]
-                local height = list and 38 or size
-                for i, e in ipairs(section.items) do
-                    n = n + 1; renderItem(e, n, x + ((i - 1) % cols) * (size + gap), y + math.floor((i - 1) / cols) * (height + gap), list and laneWidth or size, height, list)
-                    items[n]:SetScript("OnEnter", enterItem)
-                end
-                y = y + math.ceil(#section.items / cols) * (height + gap)
+        -- Sections fill rows across the columns in their fixed order (Modules/Model.lua): the sections of one
+        -- row start at the same height and the row is as tall as its tallest section (the others get blank
+        -- space), so a count that changes only makes rows longer or shorter further down (2026-11-26, user)
+        local lanes = layout.lanes
+        local headerCount, rowTop = 0, 0
+        for _, sections in ipairs(ns.SectionRows(model, lanes)) do
+            local rowHeader, rowBottom = 0, rowTop
+            for lane = 1, lanes do
+                local section = sections[lane]
+                if section then rowHeader = math.max(rowHeader, headerHeight(section, layout.widths[lane])) end
             end
-            heights[lane] = y + 12
+            for lane = 1, lanes do
+                local section = sections[lane]
+                if section then
+                    local x, y = layout.offsets[lane], rowTop
+                    local laneWidth = layout.widths[lane]
+                    headerCount = headerCount + 1
+                    y = y + renderHeader(section, headerCount, x, y, laneWidth, rowHeader) + 5
+                    if not ns.CategoryConfig(section.id).collapsed then
+                        local list = ns.cfg.view == "list"
+                        local cols = list and 1 or layout.columns[lane]
+                        local height = list and 38 or size
+                        for i, e in ipairs(section.items) do
+                            n = n + 1; renderItem(e, n, x + ((i - 1) % cols) * (size + gap), y + math.floor((i - 1) / cols) * (height + gap), list and laneWidth or size, height, list)
+                            items[n]:SetScript("OnEnter", enterItem)
+                        end
+                        y = y + math.ceil(#section.items / cols) * (height + gap)
+                    end
+                    rowBottom = math.max(rowBottom, y)
+                end
+            end
+            rowTop = rowBottom + 12
         end
-        h = 0; for _, height in ipairs(heights) do h = math.max(h, height) end
+        h = rowTop
         local labelsUsed = 0
         if ns.cfg.emptySlots then
             -- keyring slots only take keys, so they are not drawn as free space. Profession and
@@ -977,6 +1077,7 @@ function ns.Render()
     end
     if ns.content:GetHeight() ~= math.max(1, h + 12) then ns.content:SetHeight(math.max(1, h + 12)) end
     hideUnusedSecure()
+    ns.laidOut = not prices   -- (renderHold keeps the places of this layout)
     f.emptyMessage:SetShown(n == 0)
     if n == 0 then
         f.emptyMessage:SetText(prices and (ns.T("prices") .. ": 0\n\n" .. (shared and ns.Text("ahShared") or ns.Auction.status or (job and (ns.T("scan") .. " …") or ns.Text("ahClosed")))) or (err and ns.Text("queryError") .. err or ns.T("empty")))

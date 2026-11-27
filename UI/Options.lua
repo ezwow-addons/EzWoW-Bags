@@ -132,7 +132,6 @@ function ns.ToggleOptions()
     end
     choice("view", "보기", "View", { "sections", "grid", "list" })
     choice("itemSort", "아이템 정렬", "Item sorting", { "quality", "name" })
-    choice("sectionSort", "분류 정렬", "Category sorting", { "name", "size" })
     y = y + 2
     local function number(key, ko, en, lo, hi, step)
         label(ko, en, 20, y + 5, 190)

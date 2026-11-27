@@ -300,7 +300,7 @@ frame:SetScript("OnEvent", function(_, event, arg, success)
             if ns.visiblePriceWaiting and ns.visiblePriceWaiting[arg] then ns.visiblePriceWaiting[arg] = nil; ns.viewDirty = true end
         end
     elseif event == "PLAYER_MONEY" then
-        local char = ns.db.characters[ns.player]; if char then char.money = GetMoney() end; ns.Refresh()
+        local char = ns.db.characters[ns.player]; if char then char.money = GetMoney() end; ns.Refresh(true)
     elseif event == "BANKFRAME_OPENED" then
         local wasShown = ns.window:IsShown()
         -- the window stays on the tab it shows (bags, bank or prices); the bank tab is
@@ -333,6 +333,8 @@ local elapsed, scanElapsed, shareElapsed = 0, 0, 0
 frame:SetScript("OnUpdate", function(_, dt)
     if not ns.ready then return end
     elapsed, scanElapsed, shareElapsed = elapsed + dt, scanElapsed + dt, shareElapsed + dt
+    -- an item on the cursor (a drag): the bag change after it is put down is laid out in full
+    if ns.NoHoldFor and ns.API.CursorBusy() then ns.NoHoldFor(1) end
     ns.PriceCatalog.Tick()
     ns.History.Tick()
     if ns.priceScrollDirty then ns.priceScrollDirty = false; ns.Refresh() end
@@ -344,11 +346,15 @@ frame:SetScript("OnUpdate", function(_, dt)
         ns.SyncBagParking()
         ns.TickMove()
         if ns.dirty then
+            -- (the game's sort moves items over a few moments: no holding in place until it settles)
+            if ns.noHoldUntil and GetTime() < ns.noHoldUntil then ns.NoHoldFor(1.5) end
             ns.dirty = false; ns.ScanStorage("bags")
             if ns.state.bank then ns.ScanStorage("bank") end
             ns.viewDirty = true
         end
-        if ns.viewDirty then ns.viewDirty = false; ns.Refresh() end
+        if ns.viewDirty then ns.viewDirty = false; ns.Refresh(true)
+        -- icons kept in place while the mouse was over the window: laid out again once it left
+        elseif ns.holdPending and not ns.HoldPlaces() then ns.holdPending = false; ns.Refresh() end
     end
     if scanElapsed >= .1 then scanElapsed = 0; ns.Auction.Tick() end
 end)
