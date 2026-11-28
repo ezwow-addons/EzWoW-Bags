@@ -682,11 +682,10 @@ local function renderBags(snapshot)
         local b = bagButtons[i]
         if not b then
             b = UI.Button(ns.window, "", UI.Sizes.bagButton, function(self)
-                -- an item on the cursor goes into the bag; otherwise the bag opens in the default bag frame
-                if API.CursorBusy() then ns.DropCursorIntoBag(self.bag); return end
-                if ns.storage == "bags" and ns.selected == ns.player then
-                    ns.ToggleBlizzardBag(self.bag)
-                end
+                -- an item on the cursor goes into the bag. (The default bag frame is no longer opened from
+                -- here: the game's bag code run from addon code left the bank type tainted and blocked item
+                -- use from bags, see Core/Events.lua; the tooltip lists the bag's contents.)
+                if API.CursorBusy() then ns.DropCursorIntoBag(self.bag) end
             end)
             b:SetHeight(UI.Sizes.bagButton); b.text:Hide()
             b.bagIcon = b:CreateTexture(nil, "ARTWORK"); b.bagIcon:SetPoint("TOPLEFT", 3, -3); b.bagIcon:SetPoint("BOTTOMRIGHT", -3, 3)
